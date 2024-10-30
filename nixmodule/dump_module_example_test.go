@@ -1,15 +1,15 @@
-package nixmod2go_test
+package nixmodule_test
 
 import (
 	"context"
 	"fmt"
 	"log"
 
-	"libdb.so/nixmod2go"
+	"libdb.so/nixmod2go/nixmodule"
 )
 
 func Example() {
-	m, err := nixmod2go.DumpModule(context.TODO(), nixmod2go.DumpModuleExpr(`
+	m, err := nixmodule.DumpModule(context.TODO(), nixmodule.DumpModuleExpr(`
 		{ lib, ... }: with lib; {
 			options = {
 				services.magics = {
@@ -27,14 +27,14 @@ func Example() {
 		log.Fatalln(err)
 	}
 
-	printOption := func(n string, o nixmod2go.Option) {
+	printOption := func(n string, o nixmodule.Option) {
 		fmt.Printf("%6s (%T): %s\n", n, o, o.Doc().Description)
 	}
 
-	magics := m.ByPath("services", "magics").(nixmod2go.Module)
+	magics := m.ByPath("services", "magics").(nixmodule.Module)
 	printOption("enable", magics["enable"])
 	printOption("port", magics["port"])
 	// Output:
-	// enable (nixmod2go.BoolOption): Whether to enable magic services.
-	//   port (nixmod2go.UnsignedInt16Option): The port to listen on.
+	// enable (nixmodule.BoolOption): Whether to enable magic services.
+	//   port (nixmodule.UnsignedInt16Option): The port to listen on.
 }

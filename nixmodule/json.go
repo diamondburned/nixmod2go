@@ -1,4 +1,4 @@
-package nixmod2go
+package nixmodule
 
 import (
 	"fmt"
