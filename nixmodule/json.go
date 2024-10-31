@@ -2,6 +2,7 @@ package nixmodule
 
 import (
 	"fmt"
+	"log/slog"
 	"reflect"
 
 	"github.com/go-json-experiment/json"
@@ -42,6 +43,7 @@ func marshalOption(enc *jsontext.Encoder, o Option, opts json.Options) error {
 		Type:   o.Type(),
 		Value:  b,
 	}
+
 	return json.MarshalEncode(enc, final, opts)
 }
 
@@ -50,17 +52,23 @@ func marshalOptionNoop(*jsontext.Encoder, Option, json.Options) error {
 }
 
 func unmarshalOption(dec *jsontext.Decoder, o *Option, opts json.Options) error {
-	raw, err := dec.ReadValue()
+	value, err := dec.ReadValue()
 	if err != nil {
 		return fmt.Errorf("read value: %w", err)
 	}
+
+	slog.Debug(
+		"nixmodule: unmarshaling",
+		"type", "option",
+		"ptr", dec.StackPointer(),
+		"value", value)
 
 	var option struct {
 		Option bool   `json:"_option"`
 		Type   string `json:"_type"`
 	}
 
-	if err := json.Unmarshal(raw, &option, opts); err != nil {
+	if err := json.Unmarshal(value, &option, opts); err != nil {
 		return fmt.Errorf("unmarshal to dummy value: %w", err)
 	}
 
@@ -68,7 +76,7 @@ func unmarshalOption(dec *jsontext.Decoder, o *Option, opts json.Options) error 
 		// Parse as a module.
 		var m Module
 
-		if err := json.Unmarshal(raw, &m, opts); err != nil {
+		if err := json.Unmarshal(value, &m, opts); err != nil {
 			return fmt.Errorf("error while unmarshaling as module: %w", err)
 		}
 
@@ -79,7 +87,7 @@ func unmarshalOption(dec *jsontext.Decoder, o *Option, opts json.Options) error 
 	rt, ok := optionMap[option.Type]
 	if !ok {
 		u := UnspecifiedOption{}
-		if err := json.Unmarshal(raw, &u, opts); err != nil {
+		if err := json.Unmarshal(value, &u, opts); err != nil {
 			return fmt.Errorf("unmarshal unspecified option: %w", err)
 		}
 		*o = u
@@ -87,7 +95,7 @@ func unmarshalOption(dec *jsontext.Decoder, o *Option, opts json.Options) error 
 	}
 
 	rv := reflect.New(rt)
-	if err := json.Unmarshal(raw, rv.Interface(), opts); err != nil {
+	if err := json.Unmarshal(value, rv.Interface(), opts); err != nil {
 		return fmt.Errorf("unmarshal option: %w", err)
 	}
 	*o = rv.Elem().Interface().(Option)
@@ -114,8 +122,19 @@ func unmarshalModule(dec *jsontext.Decoder, m *Module, opts json.Options) error 
 			return fmt.Errorf("error unmarshaling module name: %w", err)
 		}
 
+		vvalue, err := dec.ReadValue()
+		if err != nil {
+			return fmt.Errorf("error reading module attr %s: %w", k, err)
+		}
+
+		slog.Debug(
+			"nixmodule: unmarshaling",
+			"type", "module",
+			"ptr", dec.StackPointer(),
+			"value", vvalue)
+
 		var v Option
-		if err := json.UnmarshalDecode(dec, &v, opts); err != nil {
+		if err := json.Unmarshal(vvalue, &v, opts); err != nil {
 			return fmt.Errorf("error unmarshaling module attr %s: %w", k, err)
 		}
 

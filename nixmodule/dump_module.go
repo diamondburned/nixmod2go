@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -21,21 +22,21 @@ type argAdder interface {
 	add(ctx context.Context, cmd *exec.Cmd) error
 }
 
-// DumpModuleInput represents an input to [DumpModule].
-// It can be either [DumpModulePath] or [DumpModuleExpr].
-type DumpModuleInput interface {
+// ModuleInput represents an input to [DumpModule].
+// It can be either [ModulePath] or [ModuleExpr].
+type ModuleInput interface {
 	isDumpModuleInput()
 	argAdder
 }
 
-func (DumpModulePath) isDumpModuleInput() {}
-func (DumpModuleExpr) isDumpModuleInput() {}
+func (ModulePath) isDumpModuleInput() {}
+func (ModuleExpr) isDumpModuleInput() {}
 
-// DumpModulePath represents a path to a Nix module file.
+// ModulePath represents a path to a Nix module file.
 // The path doesn't have to be absolute.
-type DumpModulePath string
+type ModulePath string
 
-func (p DumpModulePath) add(ctx context.Context, cmd *exec.Cmd) error {
+func (p ModulePath) add(ctx context.Context, cmd *exec.Cmd) error {
 	abs, err := filepath.Abs(string(p))
 	if err != nil {
 		return fmt.Errorf("resolve module path: %w", err)
@@ -45,13 +46,13 @@ func (p DumpModulePath) add(ctx context.Context, cmd *exec.Cmd) error {
 	return nil
 }
 
-// DumpModuleExpr represents a Nix expression that evaluates to a Nix module.
+// ModuleExpr represents a Nix expression that evaluates to a Nix module.
 // The expression must be a function that accepts a `lib` argument and returns a
 // Nix module.
-type DumpModuleExpr NixExpr
+type ModuleExpr NixExpr
 
-func (e DumpModuleExpr) add(ctx context.Context, cmd *exec.Cmd) error {
-	if err := NixExpr(e).tryParsing(ctx); err != nil {
+func (e ModuleExpr) add(ctx context.Context, cmd *exec.Cmd) error {
+	if err := NixExpr(e).Validate(ctx); err != nil {
 		return fmt.Errorf("parse module expression: %w", err)
 	}
 	cmd.Args = append(cmd.Args, "--arg", "module", string(e))
@@ -73,7 +74,7 @@ func (f dumpModuleOptFunc) add(ctx context.Context, cmd *exec.Cmd) error { retur
 // By default, <nixpkgs> is used.
 func DumpModuleWithPkgs(expr NixExpr) DumpModuleOpt {
 	return dumpModuleOptFunc(func(ctx context.Context, cmd *exec.Cmd) error {
-		if err := expr.tryParsing(ctx); err != nil {
+		if err := expr.Validate(ctx); err != nil {
 			return fmt.Errorf("parse pkgs expression: %w", err)
 		}
 		cmd.Args = append(cmd.Args, "--arg", "pkgs", string(expr))
@@ -83,12 +84,27 @@ func DumpModuleWithPkgs(expr NixExpr) DumpModuleOpt {
 
 // DumpModuleWithSpecialArgs adds a `specialArgs` argument to the Nix expression.
 // By default, { } is used.
-func DumpModuleWithSpecialArgs(expr NixExpr) DumpModuleOpt {
+func DumpModuleWithSpecialArgs(specialArgs map[string]NixExpr) DumpModuleOpt {
 	return dumpModuleOptFunc(func(ctx context.Context, cmd *exec.Cmd) error {
-		if err := expr.tryParsing(ctx); err != nil {
-			return fmt.Errorf("parse specialArgs expression: %w", err)
+		var b strings.Builder
+		b.WriteString("{ ")
+		for k, v := range specialArgs {
+			if err := v.Validate(ctx); err != nil {
+				return fmt.Errorf("specialArgs: error at %q: %w", k, err)
+			}
+			fmt.Fprintf(&b, "%q = %s; ", k, v)
 		}
-		cmd.Args = append(cmd.Args, "--arg", "specialArgs", string(expr))
+		b.WriteString(" }")
+
+		slog.DebugContext(ctx,
+			"built specialArgs expression",
+			"specialArgs", b.String())
+
+		if err := NixExpr(b.String()).Validate(ctx); err != nil {
+			return fmt.Errorf("specialArgs: %w", err)
+		}
+
+		cmd.Args = append(cmd.Args, "--arg", "specialArgs", b.String())
 		return nil
 	})
 }
@@ -103,23 +119,49 @@ func DumpModuleWithStderrPassthrough() DumpModuleOpt {
 	})
 }
 
+// DumpModuleOpts represents a list of [DumpModuleOpt].
+type DumpModuleOpts []DumpModuleOpt
+
+// Add appends more options to the list.
+func (opts *DumpModuleOpts) Add(more ...DumpModuleOpt) {
+	*opts = append(*opts, more...)
+}
+
+func (opts DumpModuleOpts) add(ctx context.Context, cmd *exec.Cmd) error {
+	for _, opt := range opts {
+		if err := opt.add(ctx, cmd); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (opts DumpModuleOpts) isDumpModuleOpt() {}
+
 // DumpModule evaluates a Nix module and returns its representation as a
 // [Module].
-func DumpModule(ctx context.Context, module DumpModuleInput, opts ...DumpModuleOpt) (Module, error) {
+func DumpModule(ctx context.Context, module ModuleInput, opts ...DumpModuleOpt) (Module, error) {
+	return dumpModuleAs[Module](ctx, module, opts...)
+}
+
+func dumpModuleAs[T any](ctx context.Context, module ModuleInput, opts ...DumpModuleOpt) (T, error) {
+	var v T
+
 	cmd := exec.CommandContext(ctx,
 		"nix-instantiate",
-		"--eval", "--strict", "--json",
-		"--expr", string(dumpModuleNix))
+		"--eval", "--strict", "--json", "--expr")
 
 	if err := module.add(ctx, cmd); err != nil {
-		return nil, err
+		return v, err
 	}
 
 	for _, opt := range opts {
 		if err := opt.add(ctx, cmd); err != nil {
-			return nil, err
+			return v, err
 		}
 	}
+
+	cmd.Args = append(cmd.Args, string(dumpModuleNix))
 
 	var stderr strings.Builder
 	if cmd.Stderr == nil {
@@ -128,32 +170,35 @@ func DumpModule(ctx context.Context, module DumpModuleInput, opts ...DumpModuleO
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		return nil, fmt.Errorf("get stdout pipe: %w", err)
+		return v, fmt.Errorf("get stdout pipe: %w", err)
 	}
 	defer stdout.Close()
 
+	slog.DebugContext(ctx,
+		"running nix-instantiate to dump modules",
+		"args", cmd.Args[:len(cmd.Args)-1])
+
 	if err := cmd.Start(); err != nil {
-		return nil, fmt.Errorf("start nix-instantiate: %w", err)
+		return v, fmt.Errorf("start nix-instantiate: %w", err)
 	}
 
-	var m Module
-	jsonErr := json.UnmarshalRead(stdout, &m, JSONOptions)
+	jsonErr := json.UnmarshalRead(stdout, &v, JSONOptions)
 
 	if err := cmd.Wait(); err != nil {
 		var exitErr *exec.ExitError
 		if errors.As(err, &exitErr) {
 			nixErrorMatch := nixErrorRe.FindStringSubmatch(stderr.String())
 			if nixErrorMatch != nil {
-				return nil, fmt.Errorf("nix-instantiate: %s", nixErrorMatch[1])
+				return v, fmt.Errorf("nix-instantiate: %s", nixErrorMatch[1])
 			}
-			return nil, fmt.Errorf("nix-instantiate: %s", stderr.String())
+			return v, fmt.Errorf("nix-instantiate: %s", stderr.String())
 		}
-		return nil, fmt.Errorf("nix-instantiate: %w", err)
+		return v, fmt.Errorf("nix-instantiate: %w", err)
 	}
 
 	if jsonErr != nil {
-		return nil, fmt.Errorf("unmarshal module: %w", jsonErr)
+		return v, fmt.Errorf("unmarshal module: %w", jsonErr)
 	}
 
-	return m, nil
+	return v, nil
 }

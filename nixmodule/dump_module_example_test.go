@@ -9,7 +9,7 @@ import (
 )
 
 func Example() {
-	m, err := nixmodule.DumpModule(context.TODO(), nixmodule.DumpModuleExpr(`
+	m, err := nixmodule.DumpModule(context.TODO(), nixmodule.ModuleExpr(`
 		{ lib, ... }: with lib; {
 			options = {
 				services.magics = {

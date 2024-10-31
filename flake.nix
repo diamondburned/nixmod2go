@@ -25,12 +25,13 @@
             gopls
             gotools
 
+            xc
             nixfmt-rfc-style
           ];
         };
       }
     ))
     // {
-      lib.dumpModule = import ./dump_module.nix;
+      lib.dumpModule = import ./nixmodule/dump_module.nix;
     };
 }

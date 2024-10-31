@@ -14,33 +14,66 @@ type Option interface {
 	Doc() OptionDoc
 }
 
-var optionMap = map[string]reflect.Type{
-	"str":             reflect.TypeFor[StrOption](),
-	"int":             reflect.TypeFor[IntOption](),
-	"path":            reflect.TypeFor[PathOption](),
-	"bool":            reflect.TypeFor[BoolOption](),
-	"float":           reflect.TypeFor[FloatOption](),
-	"attrs":           reflect.TypeFor[AttrsOption](),
-	"anything":        reflect.TypeFor[AnythingOption](),
-	"unspecified":     reflect.TypeFor[UnspecifiedOption](),
-	"intBetween":      reflect.TypeFor[IntBetweenOption](),
-	"positiveInt":     reflect.TypeFor[PositiveIntOption](),
-	"signedInt8":      reflect.TypeFor[SignedInt8Option](),
-	"signedInt16":     reflect.TypeFor[SignedInt16Option](),
-	"signedInt32":     reflect.TypeFor[SignedInt32Option](),
-	"unsignedInt8":    reflect.TypeFor[UnsignedInt8Option](),
-	"unsignedInt16":   reflect.TypeFor[UnsignedInt16Option](),
-	"unsignedInt32":   reflect.TypeFor[UnsignedInt32Option](),
-	"unsignedInt":     reflect.TypeFor[UnsignedIntOption](),
-	"enum":            reflect.TypeFor[EnumOption](),
-	"separatedString": reflect.TypeFor[SeparatedString](),
-	"unique":          reflect.TypeFor[UniqueOption](),
-	"either":          reflect.TypeFor[EitherOption](),
-	"nullOr":          reflect.TypeFor[NullOrOption](),
-	"listOf":          reflect.TypeFor[ListOfOption](),
-	"attrsOf":         reflect.TypeFor[AttrsOfOption](),
-	"submodule":       reflect.TypeFor[SubmoduleOption](),
+// equivalent of TypeFor but the compiler will also enforce that OptionT
+// actually implements [Option].
+func optionType[OptionT Option]() reflect.Type {
+	return reflect.TypeFor[OptionT]()
 }
+
+// serves as both a type registry and a type assertion.
+var optionMap = map[string]reflect.Type{
+	StrOption{}.Type():           optionType[StrOption](),
+	IntOption{}.Type():           optionType[IntOption](),
+	IntBetweenOption{}.Type():    optionType[IntBetweenOption](),
+	PositiveIntOption{}.Type():   optionType[PositiveIntOption](),
+	SignedInt8Option{}.Type():    optionType[SignedInt8Option](),
+	SignedInt16Option{}.Type():   optionType[SignedInt16Option](),
+	SignedInt32Option{}.Type():   optionType[SignedInt32Option](),
+	UnsignedInt8Option{}.Type():  optionType[UnsignedInt8Option](),
+	UnsignedInt16Option{}.Type(): optionType[UnsignedInt16Option](),
+	UnsignedInt32Option{}.Type(): optionType[UnsignedInt32Option](),
+	UnsignedIntOption{}.Type():   optionType[UnsignedIntOption](),
+	PathOption{}.Type():          optionType[PathOption](),
+	BoolOption{}.Type():          optionType[BoolOption](),
+	FloatOption{}.Type():         optionType[FloatOption](),
+	AttrsOption{}.Type():         optionType[AttrsOption](),
+	AnythingOption{}.Type():      optionType[AnythingOption](),
+	UnspecifiedOption{}.Type():   optionType[UnspecifiedOption](),
+	EnumOption{}.Type():          optionType[EnumOption](),
+	SeparatedString{}.Type():     optionType[SeparatedString](),
+	UniqueOption{}.Type():        optionType[UniqueOption](),
+	EitherOption{}.Type():        optionType[EitherOption](),
+	NullOrOption{}.Type():        optionType[NullOrOption](),
+	ListOfOption{}.Type():        optionType[ListOfOption](),
+	AttrsOfOption{}.Type():       optionType[AttrsOfOption](),
+	SubmoduleOption{}.Type():     optionType[SubmoduleOption](),
+}
+
+func (StrOption) Type() string           { return "str" }
+func (IntOption) Type() string           { return "int" }
+func (IntBetweenOption) Type() string    { return "intBetween" }
+func (PositiveIntOption) Type() string   { return "positiveInt" }
+func (SignedInt8Option) Type() string    { return "signedInt8" }
+func (SignedInt16Option) Type() string   { return "signedInt16" }
+func (SignedInt32Option) Type() string   { return "signedInt32" }
+func (UnsignedInt8Option) Type() string  { return "unsignedInt8" }
+func (UnsignedInt16Option) Type() string { return "unsignedInt16" }
+func (UnsignedInt32Option) Type() string { return "unsignedInt32" }
+func (UnsignedIntOption) Type() string   { return "unsignedInt" }
+func (PathOption) Type() string          { return "path" }
+func (BoolOption) Type() string          { return "bool" }
+func (FloatOption) Type() string         { return "float" }
+func (AttrsOption) Type() string         { return "attrs" }
+func (AnythingOption) Type() string      { return "anything" }
+func (UnspecifiedOption) Type() string   { return "unspecified" }
+func (EnumOption) Type() string          { return "enum" }
+func (SeparatedString) Type() string     { return "separatedString" }
+func (UniqueOption) Type() string        { return "unique" }
+func (EitherOption) Type() string        { return "either" }
+func (NullOrOption) Type() string        { return "nullOr" }
+func (ListOfOption) Type() string        { return "listOf" }
+func (AttrsOfOption) Type() string       { return "attrsOf" }
+func (SubmoduleOption) Type() string     { return "submodule" }
 
 // OptionDoc represents the documentation for a Nix option.
 // It is extracted directly from mkOption.
@@ -54,14 +87,7 @@ type OptionDoc struct {
 	Visible          bool   `json:"visible,omitzero"`
 	Internal         bool   `json:"internal,omitzero"`
 	ReadOnly         bool   `json:"readOnly,omitzero"`
-
-	optionType string
 }
-
-var _ Option = OptionDoc{}
-
-// Type returns the type of the option.
-func (o OptionDoc) Type() string { return o.optionType }
 
 // Doc returns itself.
 // Types can embed [OptionDoc] to satisfy the [Option] interface.

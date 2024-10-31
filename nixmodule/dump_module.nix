@@ -24,7 +24,7 @@ let
     option:
     if (option ? _type) then
       if (option._type == "option") then
-        ({ _option = true; })
+        ({ })
         // (parseOption option.type)
         // (flip filterAttrs option (
           k: _:
@@ -51,7 +51,10 @@ let
           }
         )
       else if (option._type == "option-type") then
-        ({ _type = option.name; })
+        ({
+          _option = true;
+          _type = option.name;
+        })
         // (
           {
             # Types that don't have more types underneath:
@@ -79,8 +82,8 @@ let
             enum.enum = option.functor.payload;
             separatedString.separator = option.functor.payload;
             # Types that have more types underneath:
-            unique.unique = parseOption option.nestedTypes.elemType;
             either.either = flattenEither option;
+            unique.unique = parseOption option.nestedTypes.elemType;
             nullOr.nullOr = parseOption option.nestedTypes.elemType;
             listOf.listOf = parseOption option.nestedTypes.elemType;
             attrsOf.attrsOf = parseOption option.nestedTypes.elemType;

@@ -13,7 +13,8 @@ import (
 // It exists for documentation purposes only.
 type NixExpr string
 
-func (e NixExpr) tryParsing(ctx context.Context) error {
+// Validate checks if the Nix expression is valid.
+func (e NixExpr) Validate(ctx context.Context) error {
 	cmd := exec.CommandContext(ctx, "nix-instantiate", "--parse", "--expr", string(e))
 
 	var stderr strings.Builder
