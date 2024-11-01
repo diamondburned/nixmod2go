@@ -15,20 +15,13 @@ import (
 	"github.com/lmittmann/tint"
 	"github.com/mattn/go-isatty"
 	"github.com/urfave/cli/v3"
+	"libdb.so/nixmod2go/nixmod2go"
 	"libdb.so/nixmod2go/nixmodule"
 )
-
-var logLevel = slog.LevelInfo
 
 func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
-
-	logger := slog.New(tint.NewHandler(os.Stderr, &tint.Options{
-		Level:   logLevel,
-		NoColor: os.Getenv("NO_COLOR") != "" || !isatty.IsTerminal(os.Stderr.Fd()),
-	}))
-	slog.SetDefault(logger)
 
 	if err := cmd.Run(ctx, os.Args); err != nil {
 		slog.ErrorContext(ctx, err.Error())
@@ -40,6 +33,7 @@ var cmd = &cli.Command{
 	Name:      "nixmod2go",
 	Usage:     "parse and generate Go struct definitions from Nix modules",
 	ArgsUsage: "<module-path> [output-file]",
+	Before:    appBefore,
 	Action:    appAction,
 	Flags: []cli.Flag{
 		&cli.StringFlag{
@@ -71,6 +65,11 @@ var cmd = &cli.Command{
 			Usage: "pretty print JSON output",
 			Value: true,
 		},
+		&cli.StringFlag{
+			Name:  "go-package",
+			Usage: "the package name of the generated Go file",
+			Value: "main",
+		},
 		&cli.BoolFlag{
 			Name:    "expr",
 			Aliases: []string{"E"},
@@ -80,12 +79,6 @@ var cmd = &cli.Command{
 			Name:    "verbose",
 			Aliases: []string{"v"},
 			Usage:   "enable verbose output",
-			Action: func(ctx context.Context, cmd *cli.Command, value bool) error {
-				if value {
-					logLevel = slog.LevelDebug
-				}
-				return nil
-			},
 		},
 		&cli.StringMapFlag{
 			Name: "special-args",
@@ -99,6 +92,21 @@ var cmd = &cli.Command{
 			},
 		},
 	},
+}
+
+func appBefore(ctx context.Context, cmd *cli.Command) error {
+	logLevel := slog.LevelInfo
+	if cmd.Bool("verbose") {
+		logLevel = slog.LevelDebug
+	}
+
+	logger := slog.New(tint.NewHandler(os.Stderr, &tint.Options{
+		Level:   logLevel,
+		NoColor: os.Getenv("NO_COLOR") != "" || !isatty.IsTerminal(os.Stderr.Fd()),
+	}))
+	slog.SetDefault(logger)
+
+	return nil
 }
 
 func appAction(ctx context.Context, cmd *cli.Command) error {
@@ -156,10 +164,17 @@ func appAction(ctx context.Context, cmd *cli.Command) error {
 		}
 
 		if err := json.MarshalWrite(o, module, jsonOpts); err != nil {
-			return fmt.Errorf("unable to marshal module JSON: %w", err)
+			return fmt.Errorf("JSON marshal error: %w", err)
 		}
 	case "go":
-		panic("unimplemented")
+		code, err := nixmod2go.Generate(cmd.String("go-package"), module)
+		if err != nil {
+			return fmt.Errorf("Go generate error: %w", err)
+		}
+
+		if _, err := io.WriteString(o, code); err != nil {
+			return fmt.Errorf("cannot write to file: %w", err)
+		}
 	default:
 		return fmt.Errorf("unsupported format %q", format)
 	}

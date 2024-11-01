@@ -1,174 +1,220 @@
 {
-  "_option": true,
-  "_type": "",
-  "example-module": {
-    "anything": {
-      "description": "An example anything option"
-    },
-    "attrs": {
-      "default": {},
-      "description": "An example attrs option (treated as map[string]any)"
-    },
-    "bool": {
-      "default": false,
-      "description": "An example boolean option"
-    },
-    "either": {
-      "default": 42,
-      "description": "An example either option (int or string)",
-      "either": [
-        {},
-        {}
-      ]
-    },
-    "enable": {
-      "example": true,
-      "default": false,
-      "description": "Whether to enable example-module."
-    },
-    "enum": {
-      "default": "a",
-      "description": "An example enum option",
-      "enum": [
-        "a",
-        "b",
-        "c"
-      ]
-    },
-    "internal": {
-      "default": false,
-      "description": "An example internal option",
-      "internal": true
-    },
-    "lines": {
-      "example": "Hello, world!\nHello, 世界!\n",
-      "description": "An example lines option (treated as string)",
-      "separator": "\n"
-    },
-    "nullable": {
-      "description": "An example nullable string option",
-      "nullOr": {}
-    },
-    "nullableSubmodule": {
-      "description": "An example nullable submodule option",
-      "nullOr": {
-        "submodule": {
-          "enable": {
-            "example": true,
-            "default": false,
-            "description": "Whether to enable nullable-submodule."
-          }
-        }
-      }
-    },
-    "number": {
-      "example": 42,
-      "default": 42,
-      "description": "An example number option"
-    },
-    "numbers": {
-      "description": "An example for various ints.* options",
-      "submodule": {
-        "between": {},
-        "float": {},
-        "int": {},
-        "number": {
+  "examples": {
+    "modules": {
+      "complexModule": {
+        "anything": {
+          "_option": true,
+          "_type": "anything",
+          "description": "An example anything option"
+        },
+        "attrs": {
+          "_option": true,
+          "_type": "attrs",
+          "default": {},
+          "description": "An example attrs option (treated as map[string]any)"
+        },
+        "bool": {
+          "_option": true,
+          "_type": "bool",
+          "default": false,
+          "description": "An example boolean option"
+        },
+        "either": {
+          "_option": true,
+          "_type": "either",
+          "default": 42,
+          "description": "An example either option (int or string)",
           "either": [
             {},
             {}
           ]
         },
-        "positive": {},
-        "s16": {},
-        "s32": {},
-        "s8": {},
-        "u16": {},
-        "u32": {},
-        "u8": {},
-        "unsigned": {}
-      }
-    },
-    "oneOf": {
-      "default": false,
-      "description": "An example oneOf option (int or string or bool)",
-      "either": [
-        {},
-        {},
-        {},
-        {}
-      ]
-    },
-    "path": {
-      "example": "/etc/nixos/configuration.nix",
-      "description": "An example path option (treated as string)"
-    },
-    "port": {
-      "description": "An example port number option"
-    },
-    "string": {
-      "default": "Hello, World!",
-      "description": "An example string option"
-    },
-    "stringAttrs": {
-      "default": {
-        "hello": "world"
-      },
-      "description": "A map[string]string option",
-      "attrsOf": {}
-    },
-    "stringList": {
-      "default": [
-        "Hello",
-        "World"
-      ],
-      "description": "A list of strings",
-      "listOf": {}
-    },
-    "submodule": {
-      "description": "An example submodule option",
-      "submodule": {
-        "innerNullable": {
+        "enable": {
+          "_option": true,
+          "_type": "bool",
+          "example": true,
+          "default": false,
+          "description": "Whether to enable example-module."
+        },
+        "enum": {
+          "_option": true,
+          "_type": "enum",
+          "default": "a",
+          "description": "An example enum option",
+          "enum": [
+            "a",
+            "b",
+            "c"
+          ]
+        },
+        "internal": {
+          "_option": true,
+          "_type": "bool",
+          "default": false,
+          "description": "An example internal option",
+          "internal": true
+        },
+        "lines": {
+          "_option": true,
+          "_type": "separatedString",
+          "example": "Hello, world!\nHello, 世界!\n",
+          "description": "An example lines option (treated as string)",
+          "separator": "\n"
+        },
+        "nullable": {
+          "_option": true,
+          "_type": "nullOr",
           "description": "An example nullable string option",
           "nullOr": {}
         },
-        "innerString": {
+        "nullableSubmodule": {
+          "_option": true,
+          "_type": "nullOr",
+          "description": "An example nullable submodule option",
+          "nullOr": {
+            "submodule": {
+              "enable": {
+                "example": true,
+                "default": false,
+                "description": "Whether to enable nullable-submodule."
+              }
+            }
+          }
+        },
+        "number": {
+          "_option": true,
+          "_type": "int",
+          "example": 42,
+          "default": 42,
+          "description": "An example number option"
+        },
+        "numbers": {
+          "_option": true,
+          "_type": "submodule",
+          "description": "An example for various ints.* options",
+          "submodule": {
+            "between": {},
+            "float": {},
+            "int": {},
+            "number": {
+              "either": [
+                {},
+                {}
+              ]
+            },
+            "positive": {},
+            "s16": {},
+            "s32": {},
+            "s8": {},
+            "u16": {},
+            "u32": {},
+            "u8": {},
+            "unsigned": {}
+          }
+        },
+        "oneOf": {
+          "_option": true,
+          "_type": "either",
+          "default": false,
+          "description": "An example oneOf option (int or string or bool)",
+          "either": [
+            {},
+            {},
+            {},
+            {}
+          ]
+        },
+        "path": {
+          "_option": true,
+          "_type": "path",
+          "example": "/etc/nixos/configuration.nix",
+          "description": "An example path option (treated as string)"
+        },
+        "port": {
+          "_option": true,
+          "_type": "unsignedInt16",
+          "description": "An example port number option"
+        },
+        "string": {
+          "_option": true,
+          "_type": "str",
           "default": "Hello, World!",
           "description": "An example string option"
-        }
-      }
-    },
-    "submoduleList": {
-      "default": [
-        {
-          "enable": true
         },
-        {
-          "enable": false
-        }
-      ],
-      "description": "An example list of submodules",
-      "listOf": {
+        "stringAttrs": {
+          "_option": true,
+          "_type": "attrsOf",
+          "default": {
+            "hello": "world"
+          },
+          "description": "A map[string]string option",
+          "attrsOf": {}
+        },
+        "stringList": {
+          "_option": true,
+          "_type": "listOf",
+          "default": [
+            "Hello",
+            "World"
+          ],
+          "description": "A list of strings",
+          "listOf": {}
+        },
         "submodule": {
-          "enable": {
-            "example": true,
-            "default": false,
-            "description": "Whether to enable submodule-list."
+          "_option": true,
+          "_type": "submodule",
+          "description": "An example submodule option",
+          "submodule": {
+            "innerNullable": {
+              "description": "An example nullable string option",
+              "nullOr": {}
+            },
+            "innerString": {
+              "default": "Hello, World!",
+              "description": "An example string option"
+            }
           }
+        },
+        "submoduleList": {
+          "_option": true,
+          "_type": "listOf",
+          "default": [
+            {
+              "enable": true
+            },
+            {
+              "enable": false
+            }
+          ],
+          "description": "An example list of submodules",
+          "listOf": {
+            "submodule": {
+              "enable": {
+                "example": true,
+                "default": false,
+                "description": "Whether to enable submodule-list."
+              }
+            }
+          }
+        },
+        "submoduleSelfRef": {
+          "_option": true,
+          "_type": "submodule",
+          "description": "An example submodule option that references its own name",
+          "submodule": {
+            "currentName": {
+              "default": "‹name›",
+              "description": "The name of the submodule"
+            }
+          }
+        },
+        "uniq": {
+          "_option": true,
+          "_type": "unique",
+          "description": "An example unique string option",
+          "unique": {}
         }
       }
-    },
-    "submoduleSelfRef": {
-      "description": "An example submodule option that references its own name",
-      "submodule": {
-        "currentName": {
-          "default": "‹name›",
-          "description": "The name of the submodule"
-        }
-      }
-    },
-    "uniq": {
-      "description": "An example unique string option",
-      "unique": {}
     }
   }
 }

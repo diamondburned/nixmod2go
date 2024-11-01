@@ -3,7 +3,7 @@
 with lib;
 
 {
-  options.example-module = {
+  options.examples.modules.complexModule = {
     enable = mkEnableOption "example-module";
 
     string = mkOption {
