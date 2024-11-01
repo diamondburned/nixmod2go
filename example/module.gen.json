@@ -1,19 +1,25 @@
 {
-  "_option": true,
-  "_type": "",
   "example-module": {
     "anything": {
+      "_option": true,
+      "_type": "anything",
       "description": "An example anything option"
     },
     "attrs": {
+      "_option": true,
+      "_type": "attrs",
       "default": {},
       "description": "An example attrs option (treated as map[string]any)"
     },
     "bool": {
+      "_option": true,
+      "_type": "bool",
       "default": false,
       "description": "An example boolean option"
     },
     "either": {
+      "_option": true,
+      "_type": "either",
       "default": 42,
       "description": "An example either option (int or string)",
       "either": [
@@ -22,11 +28,15 @@
       ]
     },
     "enable": {
+      "_option": true,
+      "_type": "bool",
       "example": true,
       "default": false,
       "description": "Whether to enable example-module."
     },
     "enum": {
+      "_option": true,
+      "_type": "enum",
       "default": "a",
       "description": "An example enum option",
       "enum": [
@@ -36,20 +46,28 @@
       ]
     },
     "internal": {
+      "_option": true,
+      "_type": "bool",
       "default": false,
       "description": "An example internal option",
       "internal": true
     },
     "lines": {
+      "_option": true,
+      "_type": "separatedString",
       "example": "Hello, world!\nHello, 世界!\n",
       "description": "An example lines option (treated as string)",
       "separator": "\n"
     },
     "nullable": {
+      "_option": true,
+      "_type": "nullOr",
       "description": "An example nullable string option",
       "nullOr": {}
     },
     "nullableSubmodule": {
+      "_option": true,
+      "_type": "nullOr",
       "description": "An example nullable submodule option",
       "nullOr": {
         "submodule": {
@@ -62,11 +80,15 @@
       }
     },
     "number": {
+      "_option": true,
+      "_type": "int",
       "example": 42,
       "default": 42,
       "description": "An example number option"
     },
     "numbers": {
+      "_option": true,
+      "_type": "submodule",
       "description": "An example for various ints.* options",
       "submodule": {
         "between": {},
@@ -89,6 +111,8 @@
       }
     },
     "oneOf": {
+      "_option": true,
+      "_type": "either",
       "default": false,
       "description": "An example oneOf option (int or string or bool)",
       "either": [
@@ -99,17 +123,25 @@
       ]
     },
     "path": {
+      "_option": true,
+      "_type": "path",
       "example": "/etc/nixos/configuration.nix",
       "description": "An example path option (treated as string)"
     },
     "port": {
+      "_option": true,
+      "_type": "unsignedInt16",
       "description": "An example port number option"
     },
     "string": {
+      "_option": true,
+      "_type": "str",
       "default": "Hello, World!",
       "description": "An example string option"
     },
     "stringAttrs": {
+      "_option": true,
+      "_type": "attrsOf",
       "default": {
         "hello": "world"
       },
@@ -117,6 +149,8 @@
       "attrsOf": {}
     },
     "stringList": {
+      "_option": true,
+      "_type": "listOf",
       "default": [
         "Hello",
         "World"
@@ -125,6 +159,8 @@
       "listOf": {}
     },
     "submodule": {
+      "_option": true,
+      "_type": "submodule",
       "description": "An example submodule option",
       "submodule": {
         "innerNullable": {
@@ -138,6 +174,8 @@
       }
     },
     "submoduleList": {
+      "_option": true,
+      "_type": "listOf",
       "default": [
         {
           "enable": true
@@ -158,6 +196,8 @@
       }
     },
     "submoduleSelfRef": {
+      "_option": true,
+      "_type": "submodule",
       "description": "An example submodule option that references its own name",
       "submodule": {
         "currentName": {
@@ -167,6 +207,8 @@
       }
     },
     "uniq": {
+      "_option": true,
+      "_type": "unique",
       "description": "An example unique string option",
       "unique": {}
     }

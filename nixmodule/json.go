@@ -18,9 +18,14 @@ var JSONOptions = json.JoinOptions(
 		json.UnmarshalFuncV2(unmarshalModule),
 	)),
 	json.WithMarshalers(json.NewMarshalers(
+		json.MarshalFuncV2(marshalModule),
 		json.MarshalFuncV2(marshalOption),
 	)),
 )
+
+func marshalModule(enc *jsontext.Encoder, m Module, opts json.Options) error {
+	return json.MarshalEncode(enc, (map[string]Option)(m), opts)
+}
 
 func marshalOption(enc *jsontext.Encoder, o Option, opts json.Options) error {
 	if unspec, ok := o.(UnspecifiedOption); ok {

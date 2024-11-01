@@ -14,6 +14,13 @@ type Option interface {
 	Doc() OptionDoc
 }
 
+// IsType returns true if [o] is of type [T].
+// It is a shorter way of writing Go's type assertion syntax.
+func IsType[T Option](o Option) bool {
+	_, ok := o.(T)
+	return ok
+}
+
 // equivalent of TypeFor but the compiler will also enforce that OptionT
 // actually implements [Option].
 func optionType[OptionT Option]() reflect.Type {
@@ -256,7 +263,7 @@ type UnspecifiedOption struct {
 type EnumOption struct {
 	OptionDoc
 	// Enum is the list of possible values.
-	Enum []string `json:"enum"`
+	Enum []string `json:"enum,string"`
 }
 
 // SeparatedString is a Nix separated string option.

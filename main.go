@@ -15,6 +15,7 @@ import (
 	"github.com/lmittmann/tint"
 	"github.com/mattn/go-isatty"
 	"github.com/urfave/cli/v3"
+	"libdb.so/nixmod2go/nixmod2go"
 	"libdb.so/nixmod2go/nixmodule"
 )
 
@@ -70,6 +71,11 @@ var cmd = &cli.Command{
 			Name:  "json-pretty",
 			Usage: "pretty print JSON output",
 			Value: true,
+		},
+		&cli.StringFlag{
+			Name:  "go-package",
+			Usage: "the package name of the generated Go file",
+			Value: "main",
 		},
 		&cli.BoolFlag{
 			Name:    "expr",
@@ -156,10 +162,17 @@ func appAction(ctx context.Context, cmd *cli.Command) error {
 		}
 
 		if err := json.MarshalWrite(o, module, jsonOpts); err != nil {
-			return fmt.Errorf("unable to marshal module JSON: %w", err)
+			return fmt.Errorf("JSON marshal error: %w", err)
 		}
 	case "go":
-		panic("unimplemented")
+		code, err := nixmod2go.Generate(cmd.String("go-package"), module)
+		if err != nil {
+			return fmt.Errorf("Go generate error: %w", err)
+		}
+
+		if _, err := io.WriteString(o, code); err != nil {
+			return fmt.Errorf("cannot write to file: %w", err)
+		}
 	default:
 		return fmt.Errorf("unsupported format %q", format)
 	}
