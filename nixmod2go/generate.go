@@ -16,9 +16,23 @@ import (
 	gen "github.com/moznion/gowrtr/generator"
 )
 
+// Opts are the options for generating Go struct definitions from Nix modules.
+type Opts struct {
+	// RootName is the name of the root struct type.
+	// By default, it's "Config".
+	RootName string
+}
+
 // Generate generates Go struct definitions from Nix modules.
-func Generate(packageName string, module nixmodule.Module) (string, error) {
-	slog := slog.With("package", packageName)
+func Generate(module nixmodule.Module, packageName string, opts Opts) (string, error) {
+	if opts.RootName == "" {
+		opts.RootName = "Config"
+	}
+
+	slog := slog.With(
+		"package", packageName,
+		"root", opts.RootName,
+	)
 
 	f := generatingFile{
 		imports: make(map[string]struct{}),
@@ -26,7 +40,7 @@ func Generate(packageName string, module nixmodule.Module) (string, error) {
 	}
 
 	slog.Debug("generating Go struct definitions from Nix modules")
-	f.generate(sortModule(module))
+	f.generate(sortModule(module), opts.RootName)
 
 	return gen.NewRoot().
 		AddStatements(
@@ -49,12 +63,9 @@ type generatingFile struct {
 	slog       *slog.Logger
 }
 
-func (g *generatingFile) generate(root sortedModule) {
-	for _, item := range root {
-		name := parseName(item.Name)
-		path := modulePath{name}
-		g.generateItemType(path, item)
-	}
+func (g *generatingFile) generate(root sortedModule, rootName string) {
+	name := rootOptionName(rootName)
+	g.generateModuleType(name, modulePath{}, root)
 }
 
 func (g *generatingFile) generateItemType(path modulePath, item optionItem) string {
@@ -210,32 +221,47 @@ func (g *generatingFile) generateEitherType(name optionName, path modulePath, op
 		gen.NewInterface(name.Go, gen.NewFuncSignature("is"+name.Go)),
 	}
 
-	var types []gen.Statement
-	var typeMethods []gen.Statement
-	var typeFuncs []gen.Statement
+	type optionData struct {
+		nixmodule.Option
+		Name optionName
+		Type string
+	}
 
-	for _, option := range option.Either {
+	options := make([]optionData, len(option.Either))
+	for i, option := range option.Either {
 		optionName := parseName(option.Type())
 		optionName.Go = name.Go + optionName.Go
 
 		optionType := g.generateOptionType(optionName, path, option)
 
+		options[i] = optionData{
+			Option: option,
+			Name:   optionName,
+			Type:   optionType,
+		}
+	}
+
+	var types []gen.Statement
+	var typeMethods []gen.Statement
+	var typeFuncs []gen.Statement
+
+	for _, option := range options {
 		types = append(types,
-			gen.NewCommentf(" %s is one of the types that satisfy [%s].", optionName.Go, name.Go),
-			gen.NewRawStatementf("type %s %s", optionName.Go, optionType))
+			gen.NewCommentf(" %s is one of the types that satisfy [%s].", option.Name.Go, name.Go),
+			gen.NewRawStatementf("type %s %s", option.Name.Go, option.Type))
 
 		typeMethods = append(typeMethods, gen.NewFunc(
-			gen.NewFuncReceiver(strcases.FirstLetter(optionName.Go), optionName.Go),
+			gen.NewFuncReceiver(strcases.FirstLetter(option.Name.Go), option.Name.Go),
 			gen.NewFuncSignature("is"+name.Go),
 		))
 
 		typeFuncs = append(typeFuncs,
-			gen.NewCommentf(" New%s constructs a value of type `%s` that satisfies [%s].", optionName.Go, option.Type(), name.Go),
+			gen.NewCommentf(" New%s constructs a value of type `%s` that satisfies [%s].", option.Name.Go, option.Option.Type(), name.Go),
 			gen.NewFunc(nil,
-				gen.NewFuncSignature("New"+optionName.Go).
-					AddParameters(gen.NewFuncParameter(strcases.FirstLetter(optionName.Go), optionType)).
+				gen.NewFuncSignature("New"+option.Name.Go).
+					AddParameters(gen.NewFuncParameter(strcases.FirstLetter(option.Name.Go), option.Type)).
 					AddReturnTypes(name.Go),
-				gen.NewReturnStatement(fmt.Sprintf("%s(%s)", optionName.Go, strcases.FirstLetter(optionName.Go))),
+				gen.NewReturnStatement(fmt.Sprintf("%s(%s)", option.Name.Go, strcases.FirstLetter(option.Name.Go))),
 			))
 	}
 
@@ -244,7 +270,62 @@ func (g *generatingFile) generateEitherType(name optionName, path modulePath, op
 	g.append(typeMethods...)
 	g.append(typeFuncs...)
 
-	return name.Go
+	g.addImport("encoding/json")
+	g.addImport("errors")
+
+	unmarshalFunc := gen.NewFunc(nil,
+		gen.NewFuncSignature("unmarshal"+name.Go).
+			Parameters(gen.NewFuncParameter("data", "json.RawMessage")).
+			ReturnTypes(name.Go, "error"))
+	for i, option := range options {
+		unmarshalFunc = unmarshalFunc.AddStatements(gen.NewRawStatementf(
+			`
+			var v%[1]d %[2]s
+			if err := json.Unmarshal(data, &v%[1]d); err == nil {
+				return %[3]s(v%[1]d), nil
+			}
+			`,
+			i, option.Type, option.Name.Go,
+		))
+	}
+	unmarshalFunc = unmarshalFunc.AddStatements(
+		gen.NewReturnStatement(fmt.Sprintf(
+			`nil, errors.New("failed to unmarshal %s: unknown type received")`,
+			name.Go)))
+
+	g.append(
+		gen.NewCommentf(" %sJSON wraps [%[1]s] and implements the json.Unmarshaler interface.", name.Go),
+		gen.NewRawStatementf("type %sJSON struct { Value %[1]s }", name.Go),
+		gen.NewNewline(),
+		gen.NewCommentf(" UnmarshalJSON implements the [json.Unmarshaler] interface for [%s].", name.Go),
+		gen.NewFunc(
+			gen.NewFuncReceiver(strcases.FirstLetter(name.Go), "*"+name.Go+"JSON"),
+			gen.NewFuncSignature("UnmarshalJSON").
+				Parameters(gen.NewFuncParameter("data", "[]byte")).
+				ReturnTypes("error"),
+			gen.NewRawStatementf("v, err := unmarshal%s(data)", name.Go),
+			gen.NewIf(fmt.Sprintf("err != nil"),
+				gen.NewReturnStatement("err"),
+			),
+			gen.NewRawStatementf("%s.Value = v", strcases.FirstLetter(name.Go)),
+			gen.NewReturnStatement("nil"),
+		),
+		gen.NewNewline(),
+		gen.NewCommentf(" MarshalJSON implements the [json.Marshaler] interface for [%s].", name.Go),
+		gen.NewFunc(
+			gen.NewFuncReceiver(strcases.FirstLetter(name.Go), name.Go+"JSON"),
+			gen.NewFuncSignature("MarshalJSON").
+				Parameters().
+				ReturnTypes("[]byte", "error"),
+			gen.NewReturnStatement(fmt.Sprintf(
+				"json.Marshal(%s.Value)",
+				strcases.FirstLetter(name.Go))),
+		),
+	)
+
+	g.append(unmarshalFunc)
+
+	return name.Go + "JSON"
 }
 
 func (g *generatingFile) append(stmts ...gen.Statement) {

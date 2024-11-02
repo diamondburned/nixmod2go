@@ -12,6 +12,15 @@ type optionName struct {
 	Go  string // Go name
 }
 
+const specialRootName = "‹root›"
+
+func rootOptionName(rootName string) optionName {
+	return optionName{
+		Nix: specialRootName,
+		Go:  rootName,
+	}
+}
+
 func parseName(s string) optionName {
 	switch {
 	case strings.Contains(s, "-"):

@@ -209,9 +209,58 @@ with lib;
   };
 
   config = {
-    example-module = {
-      enable = false;
-      string = ":3";
+    examples.modules.complexModule = {
+      enable = true;
+      string = "Hello, World!";
+      number = 42;
+      numbers = {
+        int = 42;
+        float = 42.0;
+        number = 42;
+        u8 = 42;
+        s8 = 42;
+        u16 = 42;
+        s16 = 42;
+        u32 = 42;
+        s32 = 42;
+        between = 5;
+        unsigned = 42;
+        positive = 42;
+      };
+      lines = "Hello, world!\nHello, 世界!\n";
+      port = 80;
+      path = "/etc/nixos/configuration.nix";
+      bool = false;
+      uniq = "Hello, World!";
+      anything = null;
+      attrs = { };
+      enum = "a";
+      either = 42;
+      oneOf = false;
+      nullable = null;
+      stringAttrs = {
+        hello = "world";
+      };
+      stringList = [
+        "Hello"
+        "World"
+      ];
+      submodule = {
+        innerString = "Hello, World!";
+        innerNullable = null;
+      };
+      submoduleSelfRef = {
+        currentName = "submoduleSelfRef";
+      };
+      nullableSubmodule = null;
+      submoduleList = [
+        {
+          enable = true;
+        }
+        {
+          enable = false;
+        }
+      ];
     };
   };
 }

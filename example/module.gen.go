@@ -3,19 +3,25 @@ package example
 
 import (
 	"encoding/json"
+	"errors"
 )
 
-// Examples is the struct type for `examples`.
+// Config is the struct type for `config`.
+type Config struct {
+	Examples Examples `json:"examples"`
+}
+
+// Examples is the struct type for `config.examples`.
 type Examples struct {
 	Modules Modules `json:"modules"`
 }
 
-// Modules is the struct type for `examples.modules`.
+// Modules is the struct type for `config.examples.modules`.
 type Modules struct {
 	ComplexModule ComplexModule `json:"complexModule"`
 }
 
-// ComplexModule is the struct type for `examples.modules.complexModule`.
+// ComplexModule is the struct type for `config.examples.modules.complexModule`.
 type ComplexModule struct {
 	// Enable: whether to enable example-module.
 	Enable bool `json:"enable"`
@@ -26,7 +32,7 @@ type ComplexModule struct {
 	// Bool: example boolean option.
 	Bool bool `json:"bool"`
 	// Either: example either option (int or string).
-	Either Either `json:"either"`
+	Either EitherJSON `json:"either"`
 	// Enum: example enum option.
 	Enum Enum `json:"enum"`
 	// Internal: example internal option.
@@ -42,7 +48,7 @@ type ComplexModule struct {
 	// Numbers: example for various ints.* options.
 	Numbers Numbers `json:"numbers"`
 	// OneOf: example oneOf option (int or string or bool).
-	OneOf OneOf `json:"oneOf"`
+	OneOf OneOfJSON `json:"oneOf"`
 	// Path: example path option (treated as string).
 	Path string `json:"path"`
 	// Port: example port number option.
@@ -63,19 +69,19 @@ type ComplexModule struct {
 	Uniq string `json:"uniq"`
 }
 
-// SubmoduleSelfRef is the struct type for `examples.modules.complexModule.submoduleSelfRef`.
+// SubmoduleSelfRef is the struct type for `config.examples.modules.complexModule.submoduleSelfRef`.
 type SubmoduleSelfRef struct {
 	// CurrentName: name of the submodule.
 	CurrentName string `json:"currentName"`
 }
 
-// SubmoduleList is the struct type for `examples.modules.complexModule.submoduleList`.
+// SubmoduleList is the struct type for `config.examples.modules.complexModule.submoduleList`.
 type SubmoduleList struct {
 	// Enable: whether to enable submodule-list.
 	Enable bool `json:"enable"`
 }
 
-// Submodule is the struct type for `examples.modules.complexModule.submodule`.
+// Submodule is the struct type for `config.examples.modules.complexModule.submodule`.
 type Submodule struct {
 	// InnerNullable: example nullable string option.
 	InnerNullable *string `json:"innerNullable"`
@@ -83,7 +89,7 @@ type Submodule struct {
 	InnerString string `json:"innerString"`
 }
 
-// Numbers is the struct type for `examples.modules.complexModule.numbers`.
+// Numbers is the struct type for `config.examples.modules.complexModule.numbers`.
 type Numbers struct {
 	Between  int         `json:"between"`
 	Float    float64     `json:"float"`
@@ -99,13 +105,13 @@ type Numbers struct {
 	Unsigned uint        `json:"unsigned"`
 }
 
-// NullableSubmodule is the struct type for `examples.modules.complexModule.nullableSubmodule`.
+// NullableSubmodule is the struct type for `config.examples.modules.complexModule.nullableSubmodule`.
 type NullableSubmodule struct {
 	// Enable: whether to enable nullable-submodule.
 	Enable bool `json:"enable"`
 }
 
-// Either describes the `either` type for `examples.modules.complexModule.either`.
+// Either describes the `either` type for `config.examples.modules.complexModule.either`.
 type Either interface {
 	isEither()
 }
@@ -131,7 +137,40 @@ func NewEitherStr(e string) Either {
 	return EitherStr(e)
 }
 
-// Enum is the enum type for `examples.modules.complexModule.enum`.
+// EitherJSON wraps [Either] and implements the json.Unmarshaler interface.
+type EitherJSON struct{ Value Either }
+
+// UnmarshalJSON implements the [json.Unmarshaler] interface for [Either].
+func (e *EitherJSON) UnmarshalJSON(data []byte) error {
+	v, err := unmarshalEither(data)
+	if err != nil {
+		return err
+	}
+	e.Value = v
+	return nil
+}
+
+// MarshalJSON implements the [json.Marshaler] interface for [Either].
+func (e EitherJSON) MarshalJSON() ([]byte, error) {
+	return json.Marshal(e.Value)
+}
+
+func unmarshalEither(data json.RawMessage) (Either, error) {
+
+	var v0 int
+	if err := json.Unmarshal(data, &v0); err == nil {
+		return EitherInt(v0), nil
+	}
+
+	var v1 string
+	if err := json.Unmarshal(data, &v1); err == nil {
+		return EitherStr(v1), nil
+	}
+
+	return nil, errors.New("failed to unmarshal Either: unknown type received")
+}
+
+// Enum is the enum type for `config.examples.modules.complexModule.enum`.
 type Enum string
 
 const (
@@ -140,7 +179,7 @@ const (
 	EnumC Enum = "c"
 )
 
-// OneOf describes the `either` type for `examples.modules.complexModule.oneOf`.
+// OneOf describes the `either` type for `config.examples.modules.complexModule.oneOf`.
 type OneOf interface {
 	isOneOf()
 }
@@ -184,4 +223,47 @@ func NewOneOfBool(o bool) OneOf {
 // NewOneOfAttrs constructs a value of type `attrs` that satisfies [OneOf].
 func NewOneOfAttrs(o map[string]any) OneOf {
 	return OneOfAttrs(o)
+}
+
+// OneOfJSON wraps [OneOf] and implements the json.Unmarshaler interface.
+type OneOfJSON struct{ Value OneOf }
+
+// UnmarshalJSON implements the [json.Unmarshaler] interface for [OneOf].
+func (o *OneOfJSON) UnmarshalJSON(data []byte) error {
+	v, err := unmarshalOneOf(data)
+	if err != nil {
+		return err
+	}
+	o.Value = v
+	return nil
+}
+
+// MarshalJSON implements the [json.Marshaler] interface for [OneOf].
+func (o OneOfJSON) MarshalJSON() ([]byte, error) {
+	return json.Marshal(o.Value)
+}
+
+func unmarshalOneOf(data json.RawMessage) (OneOf, error) {
+
+	var v0 int
+	if err := json.Unmarshal(data, &v0); err == nil {
+		return OneOfInt(v0), nil
+	}
+
+	var v1 string
+	if err := json.Unmarshal(data, &v1); err == nil {
+		return OneOfStr(v1), nil
+	}
+
+	var v2 bool
+	if err := json.Unmarshal(data, &v2); err == nil {
+		return OneOfBool(v2), nil
+	}
+
+	var v3 map[string]any
+	if err := json.Unmarshal(data, &v3); err == nil {
+		return OneOfAttrs(v3), nil
+	}
+
+	return nil, errors.New("failed to unmarshal OneOf: unknown type received")
 }

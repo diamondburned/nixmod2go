@@ -32,6 +32,9 @@
       }
     ))
     // {
-      lib.dumpModule = import ./nixmodule/dump_module.nix;
+      lib = {
+        dumpModule = import ./nixmodule/dump_module.nix;
+        exampleModule = nixpkgs.lib.evalModules { modules = [ ./example/module.nix ]; };
+      };
     };
 }

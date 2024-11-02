@@ -97,10 +97,9 @@ func (m modulePath) GoDocForNixPath() string {
 
 func (m modulePath) NixPath() string {
 	var b strings.Builder
-	for i, v := range m {
-		if i > 0 {
-			b.WriteByte('.')
-		}
+	b.WriteString("config")
+	for _, v := range m {
+		b.WriteByte('.')
 		b.WriteString(v.Nix)
 	}
 	return b.String()

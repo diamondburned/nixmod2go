@@ -70,6 +70,11 @@ var cmd = &cli.Command{
 			Usage: "the package name of the generated Go file",
 			Value: "main",
 		},
+		&cli.StringFlag{
+			Name:  "go-type-name",
+			Usage: "the type name of the generated root Go struct",
+			Value: "Config",
+		},
 		&cli.BoolFlag{
 			Name:    "expr",
 			Aliases: []string{"E"},
@@ -167,7 +172,10 @@ func appAction(ctx context.Context, cmd *cli.Command) error {
 			return fmt.Errorf("JSON marshal error: %w", err)
 		}
 	case "go":
-		code, err := nixmod2go.Generate(cmd.String("go-package"), module)
+		goPackage := cmd.String("go-package")
+		goOpts := nixmod2go.Opts{RootName: cmd.String("go-type-name")}
+
+		code, err := nixmod2go.Generate(module, goPackage, goOpts)
 		if err != nil {
 			return fmt.Errorf("Go generate error: %w", err)
 		}
