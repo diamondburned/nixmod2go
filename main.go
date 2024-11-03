@@ -12,6 +12,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/diamondburned/gotk4/gir/girgen/strcases"
 	"github.com/go-json-experiment/json"
 	"github.com/go-json-experiment/json/jsontext"
 	"github.com/lmittmann/tint"
@@ -44,6 +45,14 @@ var cmd = &cli.Command{
 			Usage:     "output format",
 			Value:     "go",
 			Validator: enumValidator("go", "json"),
+		},
+		&cli.StringSliceFlag{
+			Name:  "initials",
+			Usage: "list of words that should be all-caps, such as API or URL",
+		},
+		&cli.StringMapFlag{
+			Name:  "initials-replace",
+			Usage: "like initials, but with a replacement instead of all-caps",
 		},
 		&cli.StringFlag{
 			Name:  "flake",
@@ -81,16 +90,6 @@ var cmd = &cli.Command{
 			Name:  "options-path",
 			Usage: "dot-separated path to the options module to generate, default to all",
 		},
-		&cli.BoolFlag{
-			Name:    "expr",
-			Aliases: []string{"E"},
-			Usage:   "treat module-path as a Nix expression",
-		},
-		&cli.BoolFlag{
-			Name:    "verbose",
-			Aliases: []string{"v"},
-			Usage:   "enable verbose output",
-		},
 		&cli.StringMapFlag{
 			Name:  "special-args",
 			Usage: "special arguments to pass to the module, one key=value pair per flag",
@@ -113,6 +112,16 @@ var cmd = &cli.Command{
 			Usage: "add current flake (as self) to special-args, errors if not in a flake",
 			Value: true,
 		},
+		&cli.BoolFlag{
+			Name:    "expr",
+			Aliases: []string{"E"},
+			Usage:   "treat module-path as a Nix expression",
+		},
+		&cli.BoolFlag{
+			Name:    "verbose",
+			Aliases: []string{"v"},
+			Usage:   "enable verbose output",
+		},
 	},
 }
 
@@ -127,6 +136,9 @@ func appBefore(ctx context.Context, cmd *cli.Command) error {
 		NoColor: os.Getenv("NO_COLOR") != "" || !isatty.IsTerminal(os.Stderr.Fd()),
 	}))
 	slog.SetDefault(logger)
+
+	strcases.AddPascalSpecials(cmd.StringSlice("initials"))
+	strcases.SetPascalWords(cmd.StringMap("initials-replace"))
 
 	return nil
 }
