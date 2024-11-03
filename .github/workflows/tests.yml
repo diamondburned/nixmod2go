@@ -1,0 +1,36 @@
+name: Build and Test
+
+on:
+  push:
+  pull_request:
+
+defaults:
+  run:
+    # Use Nix for all of our build commands.
+    # Doing this will automatically run everything in our devShell.
+    shell: nix develop -c bash -e {0}
+
+jobs:
+  build:
+    name: Build via Nix
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - name: Build
+        run: nix build
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - name: Test
+        run: go test -v ./...

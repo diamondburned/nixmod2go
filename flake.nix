@@ -29,6 +29,15 @@
             nixfmt-rfc-style
           ];
         };
+
+        packages.default = pkgs.buildGoModule {
+          vendorHash = "sha256-+G9ZJ/9UdooU0Z3Mkfb1NFFlmGUFYwETlA6Q8zcyJf4=";
+
+          pname = "nixmod2go";
+          version = self.rev or "unknown";
+          src = self;
+          doCheck = false; # requires Nix
+        };
       }
     ))
     // {
