@@ -40,6 +40,11 @@ var cmd = &cli.Command{
 	Action:    appAction,
 	Flags: []cli.Flag{
 		&cli.StringFlag{
+			Name:    "config-file",
+			Aliases: []string{"c"},
+			Usage:   "path to a JSON config file, overrides flags that aren't specified in the CLI",
+		},
+		&cli.StringFlag{
 			Name:      "format",
 			Aliases:   []string{"f"},
 			Usage:     "output format",
@@ -137,8 +142,45 @@ func appBefore(ctx context.Context, cmd *cli.Command) error {
 	}))
 	slog.SetDefault(logger)
 
-	strcases.AddPascalSpecials(cmd.StringSlice("initials"))
-	strcases.SetPascalWords(cmd.StringMap("initials-replace"))
+	if cmd.String("config-file") != "" {
+		b, err := os.ReadFile(cmd.String("config-file"))
+		if err != nil {
+			return fmt.Errorf("unable to read config file: %w", err)
+		}
+
+		cfg := map[string]any{}
+		if err := json.Unmarshal(b, &cfg); err != nil {
+			return fmt.Errorf("unable to parse config file: %w", err)
+		}
+
+		for k, v := range cfg {
+			if cmd.IsSet(k) {
+				continue
+			}
+
+			slog.DebugContext(ctx,
+				"overriding flag from config",
+				"flag", k,
+				"value", v)
+
+			if err := setValue(cmd, k, v); err != nil {
+				return fmt.Errorf("error setting flag %q from config: %w", k, err)
+			}
+		}
+	}
+
+	var (
+		initials        = cmd.StringSlice("initials")
+		initialsReplace = cmd.StringMap("initials-replace")
+	)
+
+	slog.DebugContext(ctx,
+		"adding strcases pascal specials",
+		"initials", initials,
+		"initialsReplace", initialsReplace)
+
+	strcases.AddPascalSpecials(initials)
+	strcases.SetPascalWords(initialsReplace)
 
 	return nil
 }
