@@ -16,12 +16,9 @@ require (
 )
 
 require (
-	github.com/BurntSushi/toml v1.3.2 // indirect
 	github.com/alecthomas/repr v0.4.0 // indirect
 	github.com/hexops/gotextdiff v1.0.3 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/urfave/cli-altsrc/v3 v3.0.0-alpha2 // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
 	golang.org/x/sys v0.6.0 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
