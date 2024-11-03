@@ -2,6 +2,18 @@
 
 Tool to parse and generate Go struct definitions from Nix modules.
 
+## Usage
+
+```sh
+# Print help message
+nixmod2go --help
+
+# Generate Go code to stdout for module.nix
+nixmod2go -f go module.nix
+```
+
+For more information, see the help message and the below example.
+
 ## Example
 
 [example/module.nix](./example/module.nix) contains an example Nix module that
@@ -15,6 +27,9 @@ generated:
 
 [module_test.go](./example/module_test.go) ensures that the generated Go
 types can be properly unmarshaled onto and marshaled from.
+
+The command to generate these files is listed below in the
+[`update-example`](#update-example) section.
 
 ## Tasks
 
