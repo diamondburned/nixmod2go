@@ -110,6 +110,26 @@ func DumpModuleWithSpecialArgs(specialArgs map[string]NixExpr) DumpModuleOpt {
 	})
 }
 
+// DumpModuleWithOptionsPath adds an `optionsPath` argument to the Nix
+// expression.
+func DumpModuleWithOptionsPath(path []string) DumpModuleOpt {
+	return dumpModuleOptFunc(func(ctx context.Context, cmd *exec.Cmd) error {
+		var b strings.Builder
+		b.WriteString("[ ")
+		for _, v := range path {
+			fmt.Fprintf(&b, "%q ", v)
+		}
+		b.WriteString("]")
+
+		slog.DebugContext(ctx,
+			"built optionsPath expression",
+			"optionsPath", b.String())
+
+		cmd.Args = append(cmd.Args, "--arg", "optionsPath", b.String())
+		return nil
+	})
+}
+
 // DumpModuleWithStderrPassthrough redirects the standard error of the
 // `nix-instantiate` command to the standard error of the current process.
 func DumpModuleWithStderrPassthrough() DumpModuleOpt {

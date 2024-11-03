@@ -3,6 +3,7 @@
 
   pkgs ? import <nixpkgs> { },
   specialArgs ? { },
+  optionsPath ? [ ],
 }:
 
 with pkgs.lib;
@@ -112,4 +113,4 @@ let
 in
 
 assert assertMsg (!(module' ? imports)) "imports is not supported";
-parseOptions module'.options
+parseOptions (attrsets.getAttrFromPath optionsPath module'.options)

@@ -14,6 +14,7 @@ import (
 type dumpModuleTest struct {
 	name string
 	in   ModuleInput
+	opts DumpModuleOpts
 	want testResult[Module]
 }
 
@@ -44,6 +45,28 @@ var dumpModulePassingTests = []dumpModuleTest{
 				Submodule: Module{
 					"hello": StrOption{
 						OptionDoc: OptionDoc{Description: "Hello, world!"},
+					},
+				},
+			},
+		}),
+	},
+	{
+		name: "options path",
+		in: ModuleExpr(`{ lib, ... }: with lib; {
+			options.services.magics.extras = {
+				enable = mkEnableOption "magics service extras";
+			};
+		}`),
+		opts: DumpModuleOpts{
+			DumpModuleWithOptionsPath([]string{"services", "magics"}),
+		},
+		want: expectValue(Module{
+			"extras": Module{
+				"enable": BoolOption{
+					OptionDoc: OptionDoc{
+						Example:     true,
+						Default:     false,
+						Description: "Whether to enable magics service extras.",
 					},
 				},
 			},
@@ -107,7 +130,7 @@ func TestDumpModule(t *testing.T) {
 				var err error
 
 				t.Run("expect", func(t *testing.T) {
-					module, err = DumpModule(ctx, test.in)
+					module, err = DumpModule(ctx, test.in, test.opts...)
 					test.want.expect(t, module, err)
 				})
 
@@ -119,7 +142,7 @@ func TestDumpModule(t *testing.T) {
 					actual, err := json.Marshal(module, JSONOptions)
 					assert.NoError(t, err, "json.Marshal failed")
 
-					expect, err := dumpModuleAs[jsontext.Value](ctx, test.in)
+					expect, err := dumpModuleAs[jsontext.Value](ctx, test.in, test.opts...)
 					assert.NoError(t, err, "dumpModuleAs failed")
 
 					if diff := cmp.Diff(

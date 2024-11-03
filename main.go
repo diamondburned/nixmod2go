@@ -10,6 +10,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"slices"
+	"strings"
 
 	"github.com/go-json-experiment/json"
 	"github.com/go-json-experiment/json/jsontext"
@@ -75,6 +76,10 @@ var cmd = &cli.Command{
 			Name:  "go-type-name",
 			Usage: "the type name of the generated root Go struct",
 			Value: "Config",
+		},
+		&cli.StringFlag{
+			Name:  "options-path",
+			Usage: "dot-separated path to the options module to generate, default to all",
 		},
 		&cli.BoolFlag{
 			Name:    "expr",
@@ -175,9 +180,15 @@ func appAction(ctx context.Context, cmd *cli.Command) error {
 			"self", specialArgs["self"])
 	}
 
+	var optionsPath []string
+	if strPath := cmd.String("options-path"); strPath != "" {
+		optionsPath = strings.Split(strPath, ".")
+	}
+
 	module, err := nixmodule.DumpModule(ctx, input,
 		nixmodule.DumpModuleWithPkgs(pkgsExpr),
-		nixmodule.DumpModuleWithSpecialArgs(specialArgs))
+		nixmodule.DumpModuleWithSpecialArgs(specialArgs),
+		nixmodule.DumpModuleWithOptionsPath(optionsPath))
 	if err != nil {
 		return err
 	}
