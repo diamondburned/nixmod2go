@@ -86,6 +86,8 @@ func DumpModuleWithPkgs(expr NixExpr) DumpModuleOpt {
 // By default, { } is used.
 func DumpModuleWithSpecialArgs(specialArgs map[string]NixExpr) DumpModuleOpt {
 	return dumpModuleOptFunc(func(ctx context.Context, cmd *exec.Cmd) error {
+		slogAttrs := make([]any, 0, len(specialArgs))
+
 		var b strings.Builder
 		b.WriteString("{ ")
 		for k, v := range specialArgs {
@@ -93,12 +95,11 @@ func DumpModuleWithSpecialArgs(specialArgs map[string]NixExpr) DumpModuleOpt {
 				return fmt.Errorf("specialArgs: error at %q: %w", k, err)
 			}
 			fmt.Fprintf(&b, "%q = %s; ", k, v)
+			slogAttrs = append(slogAttrs, slog.String("specialArgs."+k, string(v)))
 		}
 		b.WriteString(" }")
 
-		slog.DebugContext(ctx,
-			"built specialArgs expression",
-			"specialArgs", b.String())
+		slog.DebugContext(ctx, "built specialArgs expression", slogAttrs...)
 
 		if err := NixExpr(b.String()).Validate(ctx); err != nil {
 			return fmt.Errorf("specialArgs: %w", err)

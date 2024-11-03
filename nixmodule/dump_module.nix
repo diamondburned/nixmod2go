@@ -11,11 +11,14 @@ with builtins;
 let
   lib = pkgs.lib;
 
-  module' = (if isPath module then import module else module) {
-    inherit pkgs lib specialArgs;
-    config = { };
-    options = { };
-  };
+  module' = (if isPath module then import module else module) (
+    {
+      config = { };
+      options = { };
+    }
+    // (specialArgs)
+    // ({ inherit lib; })
+  );
 
   parseOptions = options: parseOptions' (filterAttrs (k: v: k != "_module") options);
   parseOptions' = options: mapAttrs (name: parseOption) options;

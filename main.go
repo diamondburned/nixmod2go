@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"maps"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -49,7 +50,7 @@ var cmd = &cli.Command{
 			Value: ".",
 		},
 		&cli.StringFlag{
-			Name:  "flake-input",
+			Name:  "flake-pkgs",
 			Usage: "the input name of the Nixpkgs to use in the flake (must be a root input)",
 			Value: "nixpkgs",
 		},
@@ -86,7 +87,8 @@ var cmd = &cli.Command{
 			Usage:   "enable verbose output",
 		},
 		&cli.StringMapFlag{
-			Name: "special-args",
+			Name:  "special-args",
+			Usage: "special arguments to pass to the module, one key=value pair per flag",
 			Action: func(ctx context.Context, cmd *cli.Command, value map[string]string) error {
 				for k, v := range value {
 					if err := nixmodule.NixExpr(v).Validate(ctx); err != nil {
@@ -95,6 +97,16 @@ var cmd = &cli.Command{
 				}
 				return nil
 			},
+		},
+		&cli.BoolFlag{
+			Name:  "special-args-pkgs",
+			Usage: "add pkgs to special-args",
+			Value: true,
+		},
+		&cli.BoolFlag{
+			Name:  "special-args-self",
+			Usage: "add current flake (as self) to special-args, errors if not in a flake",
+			Value: true,
 		},
 	},
 }
@@ -127,17 +139,40 @@ func appAction(ctx context.Context, cmd *cli.Command) error {
 		input = nixmodule.ModulePath(cmd.Args().Get(0))
 	}
 
-	pkgsExpr, err := pkgsExpr(ctx, cmd)
+	flake, err := getFlakeInfo(ctx, cmd.String("flake"))
+	if err != nil {
+		return fmt.Errorf("flake error: %w", err)
+	}
+
+	if flake != nil {
+		slog.Debug(
+			"using current flake",
+			"url", flake.URL,
+			"inputs", slices.Collect(maps.Keys(flake.Locks.Nodes)))
+	}
+
+	pkgsExpr, err := pkgsExpr(ctx, cmd, pkgsOpts{Flake: flake})
 	if err != nil {
 		return fmt.Errorf("pkgs expression: %w", err)
 	}
 
-	var specialArgs map[string]nixmodule.NixExpr
-	if m := cmd.StringMap("special-args"); len(m) > 0 {
-		specialArgs = make(map[string]nixmodule.NixExpr, len(m))
-		for k, v := range m {
-			specialArgs[k] = nixmodule.NixExpr(v)
-		}
+	specialArgs := map[string]nixmodule.NixExpr{}
+	for k, v := range cmd.StringMap("special-args") {
+		specialArgs[k] = nixmodule.NixExpr(v)
+	}
+
+	if cmd.Bool("special-args-pkgs") {
+		specialArgs["pkgs"] = pkgsExpr
+		slog.Debug(
+			"added pkgs to special-args",
+			"pkgs", specialArgs["pkgs"])
+	}
+
+	if cmd.Bool("special-args-self") {
+		specialArgs["self"] = flake.flakeExpr()
+		slog.Debug(
+			"added self to special-args",
+			"self", specialArgs["self"])
 	}
 
 	module, err := nixmodule.DumpModule(ctx, input,

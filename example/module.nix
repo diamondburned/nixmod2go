@@ -1,4 +1,9 @@
-{ pkgs, lib, ... }:
+{
+  self, # current flake
+  pkgs, # current flake's pkgs
+  lib,
+  ...
+}:
 
 with lib;
 
