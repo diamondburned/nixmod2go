@@ -95,8 +95,9 @@ var cmd = &cli.Command{
 			Value:   "Config",
 		},
 		&cli.StringFlag{
-			Name:  "options-path",
-			Usage: "dot-separated path to the options module to generate, default to all",
+			Name:    "options-path",
+			Aliases: []string{"O"},
+			Usage:   "dot-separated path to the options module to generate, default to all",
 		},
 		&cli.StringMapFlag{
 			Name:  "special-args",
