@@ -60,9 +60,10 @@ var cmd = &cli.Command{
 			Usage: "like initials, but with a replacement instead of all-caps",
 		},
 		&cli.StringFlag{
-			Name:  "flake",
-			Usage: "path to flake (default: current)",
-			Value: ".",
+			Name:    "flake",
+			Aliases: []string{"F"},
+			Usage:   "path to flake (default: current)",
+			Value:   ".",
 		},
 		&cli.StringFlag{
 			Name:  "flake-pkgs",
@@ -82,14 +83,16 @@ var cmd = &cli.Command{
 			Value: true,
 		},
 		&cli.StringFlag{
-			Name:  "go-package",
-			Usage: "the package name of the generated Go file",
-			Value: "main",
+			Name:    "go-package",
+			Aliases: []string{"P"},
+			Usage:   "the package name of the generated Go file",
+			Value:   "main",
 		},
 		&cli.StringFlag{
-			Name:  "go-type-name",
-			Usage: "the type name of the generated root Go struct",
-			Value: "Config",
+			Name:    "go-type-name",
+			Aliases: []string{"T"},
+			Usage:   "the type name of the generated root Go struct",
+			Value:   "Config",
 		},
 		&cli.StringFlag{
 			Name:  "options-path",
