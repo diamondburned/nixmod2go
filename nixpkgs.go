@@ -49,8 +49,8 @@ func pkgsExprFromFlake(ctx context.Context, flake flakeInfo, flakeInput string) 
 	}
 
 	pkgsExpr := nixmodule.NixExpr(fmt.Sprintf(
-		`import (builtins.getFlake %q).inputs.%q { }`,
-		flake.URL, flakeInput,
+		`import (%s).inputs.%q { }`,
+		flake.flakeExpr(), flakeInput,
 	))
 
 	slog.DebugContext(ctx,
@@ -102,4 +102,12 @@ func getFlakeInfo(ctx context.Context, path string) (flakeInfo, error) {
 	}
 
 	return flake, nil
+}
+
+func (f flakeInfo) String() string {
+	return f.URL
+}
+
+func (f flakeInfo) flakeExpr() nixmodule.NixExpr {
+	return nixmodule.NixExpr(fmt.Sprintf(`builtins.getFlake %q`, f.URL))
 }

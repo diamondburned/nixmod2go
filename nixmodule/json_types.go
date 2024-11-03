@@ -21,40 +21,54 @@ func IsType[T Option](o Option) bool {
 	return ok
 }
 
-// equivalent of TypeFor but the compiler will also enforce that OptionT
-// actually implements [Option].
-func optionType[OptionT Option]() reflect.Type {
-	return reflect.TypeFor[OptionT]()
+type optionPrepValue struct {
+	GoType  reflect.Type
+	NixType string
+}
+
+func prepOption[OptionT Option]() optionPrepValue {
+	var z OptionT
+	return optionPrepValue{
+		GoType:  reflect.TypeFor[OptionT](),
+		NixType: z.Type(),
+	}
 }
 
 // serves as both a type registry and a type assertion.
-var optionMap = map[string]reflect.Type{
-	StrOption{}.Type():           optionType[StrOption](),
-	IntOption{}.Type():           optionType[IntOption](),
-	IntBetweenOption{}.Type():    optionType[IntBetweenOption](),
-	PositiveIntOption{}.Type():   optionType[PositiveIntOption](),
-	SignedInt8Option{}.Type():    optionType[SignedInt8Option](),
-	SignedInt16Option{}.Type():   optionType[SignedInt16Option](),
-	SignedInt32Option{}.Type():   optionType[SignedInt32Option](),
-	UnsignedInt8Option{}.Type():  optionType[UnsignedInt8Option](),
-	UnsignedInt16Option{}.Type(): optionType[UnsignedInt16Option](),
-	UnsignedInt32Option{}.Type(): optionType[UnsignedInt32Option](),
-	UnsignedIntOption{}.Type():   optionType[UnsignedIntOption](),
-	PathOption{}.Type():          optionType[PathOption](),
-	BoolOption{}.Type():          optionType[BoolOption](),
-	FloatOption{}.Type():         optionType[FloatOption](),
-	AttrsOption{}.Type():         optionType[AttrsOption](),
-	AnythingOption{}.Type():      optionType[AnythingOption](),
-	UnspecifiedOption{}.Type():   optionType[UnspecifiedOption](),
-	EnumOption{}.Type():          optionType[EnumOption](),
-	SeparatedString{}.Type():     optionType[SeparatedString](),
-	UniqueOption{}.Type():        optionType[UniqueOption](),
-	EitherOption{}.Type():        optionType[EitherOption](),
-	NullOrOption{}.Type():        optionType[NullOrOption](),
-	ListOfOption{}.Type():        optionType[ListOfOption](),
-	AttrsOfOption{}.Type():       optionType[AttrsOfOption](),
-	SubmoduleOption{}.Type():     optionType[SubmoduleOption](),
-}
+var optionMap = func(preps ...optionPrepValue) map[string]reflect.Type {
+	m := make(map[string]reflect.Type, len(preps))
+	for _, p := range preps {
+		m[p.NixType] = p.GoType
+	}
+	return m
+}(
+	prepOption[StrOption](),
+	prepOption[IntOption](),
+	prepOption[IntBetweenOption](),
+	prepOption[PositiveIntOption](),
+	prepOption[SignedInt8Option](),
+	prepOption[SignedInt16Option](),
+	prepOption[SignedInt32Option](),
+	prepOption[UnsignedInt8Option](),
+	prepOption[UnsignedInt16Option](),
+	prepOption[UnsignedInt32Option](),
+	prepOption[UnsignedIntOption](),
+	prepOption[PathOption](),
+	prepOption[BoolOption](),
+	prepOption[FloatOption](),
+	prepOption[AttrsOption](),
+	prepOption[PackageOption](),
+	prepOption[AnythingOption](),
+	prepOption[UnspecifiedOption](),
+	prepOption[EnumOption](),
+	prepOption[SeparatedString](),
+	prepOption[UniqueOption](),
+	prepOption[EitherOption](),
+	prepOption[NullOrOption](),
+	prepOption[ListOfOption](),
+	prepOption[AttrsOfOption](),
+	prepOption[SubmoduleOption](),
+)
 
 func (StrOption) Type() string           { return "str" }
 func (IntOption) Type() string           { return "int" }
@@ -71,6 +85,7 @@ func (PathOption) Type() string          { return "path" }
 func (BoolOption) Type() string          { return "bool" }
 func (FloatOption) Type() string         { return "float" }
 func (AttrsOption) Type() string         { return "attrs" }
+func (PackageOption) Type() string       { return "package" }
 func (AnythingOption) Type() string      { return "anything" }
 func (UnspecifiedOption) Type() string   { return "unspecified" }
 func (EnumOption) Type() string          { return "enum" }
@@ -239,22 +254,20 @@ type AttrsOption struct {
 	OptionDoc
 }
 
+// PackageOption is a Nix package option.
+// It is functionally equivalent to [StrOption] but the string value will be a
+// Nix derivation path.
+//
+// Equivalent Nix type: types.package
+type PackageOption struct {
+	OptionDoc
+}
+
 // AnythingOption is a Nix anything option.
 //
 // Equivalent Nix type: types.anything
 type AnythingOption struct {
 	OptionDoc
-}
-
-// UnspecifiedOption is a Nix unspecified option.
-// Types that could not be determined are represented as unspecified.
-//
-// Equivalent Nix type: types.unspecified
-type UnspecifiedOption struct {
-	OptionDoc
-	// JSON is the raw JSON value of the option.
-	// It is used when the type is unknown or unsupported.
-	JSON jsontext.Value `json:",unknown"`
 }
 
 // EnumOption is a Nix enum option.
@@ -328,3 +341,16 @@ type SubmoduleOption struct {
 	OptionDoc
 	Submodule Module `json:"submodule"`
 }
+
+// UnspecifiedOption is a Nix unspecified option.
+// Types that could not be determined are represented as unspecified.
+//
+// Equivalent Nix type: types.unspecified
+type UnspecifiedOption struct {
+	OptionDoc
+	// JSON is the raw JSON value of the option.
+	// It is used when the type is unknown or unsupported.
+	JSON jsontext.Value `json:",unknown"`
+}
+
+func (o UnspecifiedOption) isUnspecifiedOption() {}

@@ -156,6 +156,8 @@ func (g *generatingFile) generateOptionType(name optionName, path modulePath, op
 		return "uint"
 	case nixmodule.PathOption:
 		return "string"
+	case nixmodule.PackageOption:
+		return "string"
 	case nixmodule.BoolOption:
 		return "bool"
 	case nixmodule.FloatOption:

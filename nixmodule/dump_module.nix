@@ -12,7 +12,7 @@ let
   lib = pkgs.lib;
 
   module' = (if isPath module then import module else module) {
-    inherit lib specialArgs;
+    inherit pkgs lib specialArgs;
     config = { };
     options = { };
   };

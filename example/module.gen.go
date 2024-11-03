@@ -25,6 +25,8 @@ type Modules struct {
 type ComplexModule struct {
 	// Enable: whether to enable example-module.
 	Enable bool `json:"enable"`
+	// Package: example package option.
+	Package string `json:"package"`
 	// Anything: example anything option.
 	Anything any `json:"anything"`
 	// Attrs: example attrs option (treated as map[string]any).

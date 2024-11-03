@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-json-experiment/json"
 	"github.com/go-json-experiment/json/jsontext"
+	"github.com/puzpuzpuz/xsync/v3"
 )
 
 // JSONOptions is the list of options that allow for parsing Nix options.
@@ -27,16 +28,30 @@ func marshalModule(enc *jsontext.Encoder, m Module, opts json.Options) error {
 	return json.MarshalEncode(enc, (map[string]Option)(m), opts)
 }
 
-func marshalOption(enc *jsontext.Encoder, o Option, opts json.Options) error {
-	if unspec, ok := o.(UnspecifiedOption); ok {
-		return enc.WriteValue(unspec.JSON)
-	}
+// marshalingOptions keeps track of the [Option] values that are being
+// marshaled. This is used to allow that option to be marshaled recursively
+// without causing infinite recursions. We only have to do this because
+// go-json-experiment's Marshaler API doesn't have a way to pass state to the
+// underlying Marshalers.
+var marshalingOptions = xsync.NewMapOf[Option, struct{}]()
 
-	b, err := json.Marshal(o, opts, json.WithMarshalers(
-		json.MarshalFuncV2(marshalOptionNoop),
-	))
+func marshalOption(enc *jsontext.Encoder, o Option, opts json.Options) error {
+	if _, exists := marshalingOptions.LoadOrStore(o, struct{}{}); exists {
+		// This option is already being marshaled, so we skip it to avoid infinite
+		// recursion.
+		return json.SkipFunc
+	}
+	defer marshalingOptions.Delete(o)
+
+	b, err := json.Marshal(o, opts)
 	if err != nil {
 		return err
+	}
+
+	// If Option is an UnspecifiedOption, then the JSON library will already
+	// include the internal fields for us. Pass it through directly.
+	if _, ok := o.(interface{ isUnspecifiedOption() }); ok {
+		return enc.WriteValue(b)
 	}
 
 	final := struct {
@@ -50,10 +65,6 @@ func marshalOption(enc *jsontext.Encoder, o Option, opts json.Options) error {
 	}
 
 	return json.MarshalEncode(enc, final, opts)
-}
-
-func marshalOptionNoop(*jsontext.Encoder, Option, json.Options) error {
-	return json.SkipFunc
 }
 
 func unmarshalOption(dec *jsontext.Decoder, o *Option, opts json.Options) error {

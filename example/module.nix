@@ -1,4 +1,4 @@
-{ lib, ... }:
+{ pkgs, lib, ... }:
 
 with lib;
 
@@ -206,6 +206,12 @@ with lib;
       internal = true;
       description = "An example internal option";
     };
+
+    package = mkOption {
+      type = types.package;
+      default = pkgs.hello;
+      description = "An example package option";
+    };
   };
 
   config = {
@@ -261,6 +267,7 @@ with lib;
           enable = false;
         }
       ];
+      package = pkgs.hello;
     };
   };
 }

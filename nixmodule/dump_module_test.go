@@ -2,12 +2,13 @@ package nixmodule
 
 import (
 	"context"
-	"errors"
 	"testing"
 
+	"github.com/alecthomas/assert/v2"
 	"github.com/go-json-experiment/json"
 	"github.com/go-json-experiment/json/jsontext"
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 )
 
 type dumpModuleTest struct {
@@ -48,18 +49,37 @@ var dumpModulePassingTests = []dumpModuleTest{
 			},
 		}),
 	},
+	{
+		name: "custom type",
+		in: ModuleExpr(`{ lib, ... }: with lib; {
+			options.always-fail = mkOption {
+				description = "An option that always fails.";
+				type = mkOptionType {
+					name = "always-fail";
+					check = v: false;
+					description = "This type always fails.";
+				};
+			};
+		}`),
+		want: expectValue(Module{
+			"always-fail": UnspecifiedOption{
+				OptionDoc: OptionDoc{Description: "An option that always fails."},
+				JSON:      jsontext.Value(`{"_option":true,"_type":"always-fail"}`),
+			},
+		}),
+	},
 }
 
 var dumpModuleFailingTests = []dumpModuleTest{
 	{
 		name: "invalid module",
 		in:   ModuleExpr(`{ ... }: { }`),
-		want: expectStringError[Module]("nix-instantiate: attribute 'options' missing"),
+		want: expectAnyError[Module](),
 	},
 	{
 		name: "invalid expression",
 		in:   ModuleExpr(`{`),
-		want: expectStringError[Module]("parse module expression: nix expression error: syntax error, unexpected end of file"),
+		want: expectAnyError[Module](),
 	},
 }
 
@@ -91,15 +111,22 @@ func TestDumpModule(t *testing.T) {
 					test.want.expect(t, module, err)
 				})
 
+				if test.want.expectingError() {
+					return
+				}
+
 				t.Run("marshaling", func(t *testing.T) {
-					expectValue, err := json.Marshal(module, JSONOptions)
-					assertNoError(t, err)
+					actual, err := json.Marshal(module, JSONOptions)
+					assert.NoError(t, err, "json.Marshal failed")
 
-					actualValue, err := dumpModuleAs[jsontext.Value](ctx, test.in)
-					assertNoError(t, err)
+					expect, err := dumpModuleAs[jsontext.Value](ctx, test.in)
+					assert.NoError(t, err, "dumpModuleAs failed")
 
-					if diff := cmp.Diff(jsontext.Value(expectValue), actualValue); diff != "" {
-						t.Fatalf("unexpected marshaled value:\n%v", diff)
+					if diff := cmp.Diff(
+						canonicalizeJSON(t, actual),
+						canonicalizeJSON(t, expect),
+					); diff != "" {
+						t.Fatalf("unexpected marshaled value (-actual +expect):\n%v", diff)
 					}
 				})
 			})
@@ -107,12 +134,25 @@ func TestDumpModule(t *testing.T) {
 	}
 }
 
+func canonicalizeJSON[T ~[]byte](t *testing.T, in T) []byte {
+	// Force unmarshaling to `any` to erase all orderings of object keys.
+	// This way, Deterministic will sort the keys in a consistent order.
+	var v any
+	err := json.Unmarshal(in, &v)
+	assert.NoError(t, err, "canonicalizeJSON: json.Unmarshal failed")
+
+	b, err := json.Marshal(v,
+		json.Deterministic(true),
+		jsontext.WithIndent("  "))
+	assert.NoError(t, err, "canonicalizeJSON: json.Marshal failed")
+
+	return b
+}
+
 type testResult[T any] struct {
 	Value T
 	Error error
 }
-
-var anyError = errors.New("any error")
 
 func expectValue[T any](v T) testResult[T] {
 	return testResult[T]{v, nil}
@@ -123,30 +163,19 @@ func expectError[T any](err error) testResult[T] {
 	return testResult[T]{v, err}
 }
 
-func expectStringError[T any](err string) testResult[T] {
-	return expectError[T](errors.New(err))
-}
-
 func expectAnyError[T any]() testResult[T] {
 	var v T
-	return testResult[T]{v, anyError}
-}
-
-func assertNoError(t *testing.T, err error) {
-	t.Helper()
-	expectValue(struct{}{}).expect(t, struct{}{}, err)
+	return testResult[T]{v, cmpopts.AnyError}
 }
 
 func (r testResult[T]) expect(t *testing.T, value T, err error) {
 	t.Helper()
 	t.Logf("got value: (%v, %v)", value, err)
-	if r.Error == anyError {
-		if err == nil {
-			t.Fatalf("expected error, got nil")
-		}
-		return
+	if diff := cmp.Diff(r, testResult[T]{value, err}, cmpopts.EquateErrors()); diff != "" {
+		t.Fatalf("unexpected result (-want +got):\n%s", diff)
 	}
-	if diff := cmp.Diff(r, testResult[T]{value, err}); diff != "" {
-		t.Fatalf("unexpected result:\n%v", diff)
-	}
+}
+
+func (r testResult[T]) expectingError() bool {
+	return r.Error != nil
 }

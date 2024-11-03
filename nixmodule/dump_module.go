@@ -188,11 +188,14 @@ func dumpModuleAs[T any](ctx context.Context, module ModuleInput, opts ...DumpMo
 		var exitErr *exec.ExitError
 		if errors.As(err, &exitErr) {
 			nixErrorMatch := nixErrorRe.FindStringSubmatch(stderr.String())
-			if nixErrorMatch != nil {
-				return v, fmt.Errorf("nix-instantiate: %s", nixErrorMatch[1])
+			if nixErrorMatch == nil {
+				return v, fmt.Errorf("nix-instantiate: %s", stderr.String())
 			}
-			return v, fmt.Errorf("nix-instantiate: %s", stderr.String())
+
+			nixError := string(nixErrorMatch[1])
+			return v, fmt.Errorf("nix-instantiate: %s", nixError)
 		}
+
 		return v, fmt.Errorf("nix-instantiate: %w", err)
 	}
 

@@ -34,7 +34,12 @@
     // {
       lib = {
         dumpModule = import ./nixmodule/dump_module.nix;
-        exampleModule = nixpkgs.lib.evalModules { modules = [ ./example/module.nix ]; };
+        exampleModule = nixpkgs.lib.evalModules {
+          modules = [ ./example/module.nix ];
+          specialArgs = {
+            pkgs = nixpkgs.legacyPackages.x86_64-linux;
+          };
+        };
       };
     };
 }
