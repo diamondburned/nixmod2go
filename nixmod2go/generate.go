@@ -68,7 +68,35 @@ func (g *generatingFile) generate(root sortedModule, rootName string) {
 	g.generateModuleType(name, modulePath{}, root)
 }
 
-func (g *generatingFile) generateItemType(path modulePath, item optionItem) string {
+type optionOpts struct {
+	forceInline bool
+}
+
+type optionOpt func(*optionOpts)
+
+func buildOptionOpts(opts []optionOpt) optionOpts {
+	var o optionOpts
+	for _, opt := range opts {
+		opt(&o)
+	}
+	return o
+}
+
+func addOptions(pre []optionOpt, opts ...optionOpt) []optionOpt {
+	return append(slices.Clone(pre), opts...)
+}
+
+// optionForceInline forces the generated type to be inline.
+// This implies that the generated type does not have a side effect of adding
+// code into the *generatingFile instance.
+func optionForceInline(o *optionOpts) {
+	if o.forceInline {
+		panic("option is already forced inline")
+	}
+	o.forceInline = true
+}
+
+func (g *generatingFile) generateItemType(path modulePath, item optionItem, opts ...optionOpt) string {
 	g.slog.Debug(
 		"generating item type",
 		"path", path,
@@ -79,26 +107,29 @@ func (g *generatingFile) generateItemType(path modulePath, item optionItem) stri
 	name := parseName(item.Name)
 	switch {
 	case item.Module != nil:
-		return g.generateModuleType(name, path, *item.Module)
+		return g.generateModuleType(name, path, *item.Module, opts...)
 	case item.Option != nil:
-		return g.generateOptionType(name, path, *item.Option)
+		return g.generateOptionType(name, path, *item.Option, opts...)
 	default:
 		panic("unreachable")
 	}
 }
 
-func (g *generatingFile) generateModuleType(name optionName, path modulePath, module sortedModule) string {
+func (g *generatingFile) generateModuleType(name optionName, path modulePath, module sortedModule, opts ...optionOpt) string {
+	o := buildOptionOpts(opts)
+
 	g.slog.Debug(
 		"generating module type",
 		"path", path,
 		"name", name.Nix,
+		"opts", o,
 		"module", module.Keys())
 
 	// Manually generate a struct here. `gen` doesn't support adding comments
 	// before each struct field for some reason?
 	var s strings.Builder
 
-	fmt.Fprintf(&s, "type %s struct {\n", name.Go)
+	fmt.Fprintf(&s, "struct {\n")
 	for _, item := range module {
 		valueName := parseName(item.Name)
 		valueType := g.generateItemType(path.Add(valueName), item)
@@ -111,20 +142,24 @@ func (g *generatingFile) generateModuleType(name optionName, path modulePath, mo
 
 		fmt.Fprintf(&s, "\t%s %s `json:%q`\n", valueName.Go, valueType, item.Name)
 	}
-	fmt.Fprintln(&s, "}")
+	fmt.Fprint(&s, "}")
 
-	// Choose to prepend the struct. This is because [generateItemType] will
-	// recursively generate its own type before we can append our struct in, so
-	// it'll naturally appear at the end by the time we're here.
-	g.prepend(
-		gen.NewCommentf(" %s is the struct type for %s.", name.Go, path.GoDocForNixPath()),
-		gen.NewRawStatement(s.String()),
-	)
+	if o.forceInline {
+		return s.String()
+	} else {
+		// Choose to prepend the struct. This is because [generateItemType] will
+		// recursively generate its own type before we can append our struct in, so
+		// it'll naturally appear at the end by the time we're here.
+		g.prepend(
+			gen.NewCommentf(" %s is the struct type for %s.", name.Go, path.GoDocForNixPath()),
+			gen.NewRawStatementf("type %s %s\n", name.Go, s.String()),
+		)
 
-	return name.Go
+		return name.Go
+	}
 }
 
-func (g *generatingFile) generateOptionType(name optionName, path modulePath, option nixmodule.Option) string {
+func (g *generatingFile) generateOptionType(name optionName, path modulePath, option nixmodule.Option, opts ...optionOpt) string {
 	g.slog.Debug(
 		"generating option type",
 		"path", path,
@@ -170,31 +205,31 @@ func (g *generatingFile) generateOptionType(name optionName, path modulePath, op
 		g.addImport("encoding/json")
 		return "json.RawMessage"
 	case nixmodule.EnumOption:
-		return g.generateEnumType(name, path, option)
+		return g.generateEnumType(name, path, option, opts...)
 	case nixmodule.SeparatedString:
 		return "string" // TODO: generate type that has .Split()
 	case nixmodule.UniqueOption:
-		return g.generateOptionType(name, path, option.Unique)
+		return g.generateOptionType(name, path, option.Unique, opts...)
 	case nixmodule.EitherOption:
 		if eitherIsNumber(option) {
 			g.addImport("encoding/json")
 			return "json.Number"
 		}
-		return g.generateEitherType(name, path, option)
+		return g.generateEitherType(name, path, option, opts...)
 	case nixmodule.NullOrOption:
-		return "*" + g.generateOptionType(name, path, option.NullOr)
+		return "*" + g.generateOptionType(name, path, option.NullOr, opts...)
 	case nixmodule.ListOfOption:
-		return "[]" + g.generateOptionType(name, path, option.ListOf)
+		return "[]" + g.generateOptionType(name, path, option.ListOf, opts...)
 	case nixmodule.AttrsOfOption:
-		return "map[string]" + g.generateOptionType(name, path, option.AtrrsOf)
+		return "map[string]" + g.generateOptionType(name, path, option.AtrrsOf, opts...)
 	case nixmodule.SubmoduleOption:
-		return g.generateModuleType(name, path, sortModule(option.Submodule))
+		return g.generateModuleType(name, path, sortModule(option.Submodule), opts...)
 	default:
 		panic("unreachable")
 	}
 }
 
-func (g *generatingFile) generateEnumType(name optionName, path modulePath, option nixmodule.EnumOption) string {
+func (g *generatingFile) generateEnumType(name optionName, path modulePath, option nixmodule.EnumOption, _ ...optionOpt) string {
 	// Manually construct this code since `gen` doesn't have either `type` or
 	// `const` statements supported.
 	var s strings.Builder
@@ -217,7 +252,7 @@ func (g *generatingFile) generateEnumType(name optionName, path modulePath, opti
 	return name.Go
 }
 
-func (g *generatingFile) generateEitherType(name optionName, path modulePath, option nixmodule.EitherOption) string {
+func (g *generatingFile) generateEitherType(name optionName, path modulePath, option nixmodule.EitherOption, opts ...optionOpt) string {
 	iface := []gen.Statement{
 		gen.NewCommentf(" %s describes the `either` type for %s.", name.Go, path.GoDocForNixPath()),
 		gen.NewInterface(name.Go, gen.NewFuncSignature("is"+name.Go)),
@@ -234,7 +269,10 @@ func (g *generatingFile) generateEitherType(name optionName, path modulePath, op
 		optionName := parseName(option.Type())
 		optionName.Go = name.Go + optionName.Go
 
-		optionType := g.generateOptionType(optionName, path, option)
+		optionType := g.generateOptionType(optionName, path, option,
+			// Force the generated type to be inline.
+			// This resolves duplicate names with (either (submodule)).
+			addOptions(opts, optionForceInline)...)
 
 		options[i] = optionData{
 			Option: option,

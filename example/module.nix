@@ -186,6 +186,21 @@ with lib;
       description = "An example nullable submodule option";
     };
 
+    eitherSubmodule = mkOption {
+      type = types.either types.path (
+        types.submodule {
+          options = {
+            hello = mkOption {
+              type = types.str;
+              default = "world";
+            };
+          };
+        }
+      );
+      default = "/run/secrets/submodule.json";
+      description = "A submodule or path to the submodule";
+    };
+
     submoduleList = mkOption {
       type = types.listOf (
         types.submodule {

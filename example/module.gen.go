@@ -35,6 +35,8 @@ type ComplexModule struct {
 	Bool bool `json:"bool"`
 	// Either: example either option (int or string).
 	Either EitherJSON `json:"either"`
+	// EitherSubmodule: submodule or path to the submodule.
+	EitherSubmodule EitherSubmoduleJSON `json:"eitherSubmodule"`
 	// Enum: example enum option.
 	Enum Enum `json:"enum"`
 	// Internal: example internal option.
@@ -170,6 +172,71 @@ func unmarshalEither(data json.RawMessage) (Either, error) {
 	}
 
 	return nil, errors.New("failed to unmarshal Either: unknown type received")
+}
+
+// EitherSubmodule describes the `either` type for `config.examples.modules.complexModule.eitherSubmodule`.
+type EitherSubmodule interface {
+	isEitherSubmodule()
+}
+
+// EitherSubmodulePath is one of the types that satisfy [EitherSubmodule].
+type EitherSubmodulePath string
+
+// EitherSubmoduleSubmodule is one of the types that satisfy [EitherSubmodule].
+type EitherSubmoduleSubmodule struct {
+	Hello string `json:"hello"`
+}
+
+func (e EitherSubmodulePath) isEitherSubmodule() {
+}
+func (e EitherSubmoduleSubmodule) isEitherSubmodule() {
+}
+
+// NewEitherSubmodulePath constructs a value of type `path` that satisfies [EitherSubmodule].
+func NewEitherSubmodulePath(e string) EitherSubmodule {
+	return EitherSubmodulePath(e)
+}
+
+// NewEitherSubmoduleSubmodule constructs a value of type `submodule` that satisfies [EitherSubmodule].
+func NewEitherSubmoduleSubmodule(e struct {
+	Hello string `json:"hello"`
+}) EitherSubmodule {
+	return EitherSubmoduleSubmodule(e)
+}
+
+// EitherSubmoduleJSON wraps [EitherSubmodule] and implements the json.Unmarshaler interface.
+type EitherSubmoduleJSON struct{ Value EitherSubmodule }
+
+// UnmarshalJSON implements the [json.Unmarshaler] interface for [EitherSubmodule].
+func (e *EitherSubmoduleJSON) UnmarshalJSON(data []byte) error {
+	v, err := unmarshalEitherSubmodule(data)
+	if err != nil {
+		return err
+	}
+	e.Value = v
+	return nil
+}
+
+// MarshalJSON implements the [json.Marshaler] interface for [EitherSubmodule].
+func (e EitherSubmoduleJSON) MarshalJSON() ([]byte, error) {
+	return json.Marshal(e.Value)
+}
+
+func unmarshalEitherSubmodule(data json.RawMessage) (EitherSubmodule, error) {
+
+	var v0 string
+	if err := json.Unmarshal(data, &v0); err == nil {
+		return EitherSubmodulePath(v0), nil
+	}
+
+	var v1 struct {
+		Hello string `json:"hello"`
+	}
+	if err := json.Unmarshal(data, &v1); err == nil {
+		return EitherSubmoduleSubmodule(v1), nil
+	}
+
+	return nil, errors.New("failed to unmarshal EitherSubmodule: unknown type received")
 }
 
 // Enum is the enum type for `config.examples.modules.complexModule.enum`.

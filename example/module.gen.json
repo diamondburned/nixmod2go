@@ -35,6 +35,29 @@
             }
           ]
         },
+        "eitherSubmodule": {
+          "_option": true,
+          "_type": "either",
+          "default": "/run/secrets/submodule.json",
+          "description": "A submodule or path to the submodule",
+          "either": [
+            {
+              "_option": true,
+              "_type": "path"
+            },
+            {
+              "_option": true,
+              "_type": "submodule",
+              "submodule": {
+                "hello": {
+                  "_option": true,
+                  "_type": "str",
+                  "default": "world"
+                }
+              }
+            }
+          ]
+        },
         "enable": {
           "_option": true,
           "_type": "bool",
