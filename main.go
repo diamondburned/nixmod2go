@@ -35,7 +35,7 @@ func main() {
 var cmd = &cli.Command{
 	Name:      "nixmod2go",
 	Usage:     "parse and generate Go struct definitions from Nix modules",
-	ArgsUsage: "<module-path> [output-file]",
+	ArgsUsage: "<.#flake.path.to.module|/path/to/module> [output-file]",
 	Before:    appBefore,
 	Action:    appAction,
 	Flags: []cli.Flag{
@@ -195,14 +195,7 @@ func appAction(ctx context.Context, cmd *cli.Command) error {
 		return cli.Exit("invalid usage", 1)
 	}
 
-	var input nixmodule.ModuleInput
-	if cmd.Bool("expr") {
-		input = nixmodule.ModuleExpr(cmd.Args().Get(0))
-	} else {
-		input = nixmodule.ModulePath(cmd.Args().Get(0))
-	}
-
-	flake, err := getFlakeInfo(ctx, cmd.String("flake"))
+	flake, err := currentFlake(ctx, cmd)
 	if err != nil {
 		return fmt.Errorf("flake error: %w", err)
 	}
@@ -212,6 +205,21 @@ func appAction(ctx context.Context, cmd *cli.Command) error {
 			"using current flake",
 			"url", flake.URL,
 			"inputs", slices.Collect(maps.Keys(flake.Locks.Nodes)))
+	}
+
+	var input nixmodule.ModuleInput
+	if cmd.Bool("expr") {
+		input = nixmodule.ModuleExpr(cmd.Args().Get(0))
+	} else {
+		arg := cmd.Args().Get(0)
+		if flakePath, ok := strings.CutPrefix(arg, ".#"); ok {
+			input = nixmodule.ModuleExpr(fmt.Sprintf(
+				"(%s).%s",
+				flake.flakeExpr(), flakePath,
+			))
+		} else {
+			input = nixmodule.ModulePath(arg)
+		}
 	}
 
 	pkgsExpr, err := pkgsExpr(ctx, cmd, pkgsOpts{Flake: flake})

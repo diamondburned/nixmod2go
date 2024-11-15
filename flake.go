@@ -62,3 +62,7 @@ func (f flakeInfo) String() string {
 func (f flakeInfo) flakeExpr() nixmodule.NixExpr {
 	return nixmodule.NixExpr(fmt.Sprintf(`builtins.getFlake %q`, f.URL))
 }
+
+func (f flakeInfo) flakeExprToPath(path string) nixmodule.NixExpr {
+	return nixmodule.NixExpr(fmt.Sprintf(`(builtins.getFlake %q).%s`, f.URL, path))
+}
