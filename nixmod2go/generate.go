@@ -343,11 +343,11 @@ func (g *generatingFile) generateEitherType(name optionName, path modulePath, op
 			gen.NewFuncSignature("UnmarshalJSON").
 				Parameters(gen.NewFuncParameter("data", "[]byte")).
 				ReturnTypes("error"),
-			gen.NewRawStatementf("v, err := unmarshal%s(data)", name.Go),
+			gen.NewRawStatementf("_v, err := unmarshal%s(data)", name.Go),
 			gen.NewIf(fmt.Sprintf("err != nil"),
 				gen.NewReturnStatement("err"),
 			),
-			gen.NewRawStatementf("%s.Value = v", strcases.FirstLetter(name.Go)),
+			gen.NewRawStatementf("%s.Value = _v", strcases.FirstLetter(name.Go)),
 			gen.NewReturnStatement("nil"),
 		),
 		gen.NewNewline(),
