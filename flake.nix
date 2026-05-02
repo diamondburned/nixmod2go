@@ -28,6 +28,12 @@
             xc
             nixfmt-rfc-style
           ];
+
+          shellHook = ''
+            set -o allexport
+            source .env
+            set +o allexport
+          '';
         };
 
         packages.default = pkgs.buildGoModule {
