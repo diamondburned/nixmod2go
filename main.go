@@ -12,9 +12,10 @@ import (
 	"slices"
 	"strings"
 
+	"encoding/json/jsontext"
+	"encoding/json/v2"
+
 	"github.com/diamondburned/gotk4/gir/girgen/strcases"
-	"github.com/go-json-experiment/json"
-	"github.com/go-json-experiment/json/jsontext"
 	"github.com/lmittmann/tint"
 	"github.com/mattn/go-isatty"
 	"github.com/urfave/cli/v3"

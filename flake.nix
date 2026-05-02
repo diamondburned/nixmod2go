@@ -31,12 +31,14 @@
         };
 
         packages.default = pkgs.buildGoModule {
-          vendorHash = "sha256-HJTue4QojOKriBNHTCSrCCMo1WsI3iTY2fYQr/4b9Go=";
+          vendorHash = "sha256-69AUHmufjQ8b2D0QNBGSDFsq1xJSV/9/X4gxcWoBbbQ=";
 
           pname = "nixmod2go";
           version = self.rev or "unknown";
           src = self;
           doCheck = false; # requires Nix
+
+          env.GOEXPERIMENT = "jsonv2";
         };
       }
     ))

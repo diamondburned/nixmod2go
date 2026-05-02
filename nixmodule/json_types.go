@@ -3,7 +3,7 @@ package nixmodule
 import (
 	"reflect"
 
-	"github.com/go-json-experiment/json/jsontext"
+	"encoding/json/jsontext"
 )
 
 // Option represents a Nix option.

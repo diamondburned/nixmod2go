@@ -2,6 +2,7 @@ package nixmodule
 
 import (
 	"context"
+	"encoding/json/v2"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -11,8 +12,6 @@ import (
 	"strings"
 
 	_ "embed"
-
-	"github.com/go-json-experiment/json"
 )
 
 //go:embed dump_module.nix

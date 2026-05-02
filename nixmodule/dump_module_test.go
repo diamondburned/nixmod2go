@@ -2,13 +2,15 @@ package nixmodule
 
 import (
 	"context"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
+	"log/slog"
 	"testing"
 
 	"github.com/alecthomas/assert/v2"
-	"github.com/go-json-experiment/json"
-	"github.com/go-json-experiment/json/jsontext"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/neilotoole/slogt"
 )
 
 type dumpModuleTest struct {
@@ -125,6 +127,7 @@ func TestDumpModule(t *testing.T) {
 		for _, test := range suite.suite {
 			t.Run(suite.name+"/"+test.name, func(t *testing.T) {
 				ctx := context.Background()
+				hookSlog(t)
 
 				var module Module
 				var err error
@@ -149,6 +152,8 @@ func TestDumpModule(t *testing.T) {
 						canonicalizeJSON(t, actual),
 						canonicalizeJSON(t, expect),
 					); diff != "" {
+						t.Logf("actual JSON: %s", actual)
+						t.Logf("expect JSON: %s", expect)
 						t.Fatalf("unexpected marshaled value (-actual +expect):\n%v", diff)
 					}
 				})
@@ -201,4 +206,13 @@ func (r testResult[T]) expect(t *testing.T, value T, err error) {
 
 func (r testResult[T]) expectingError() bool {
 	return r.Error != nil
+}
+
+func hookSlog(t *testing.T) {
+	t.Helper()
+
+	newLogger := slogt.New(t)
+	oldLogger := slog.Default()
+	slog.SetDefault(newLogger)
+	t.Cleanup(func() { slog.SetDefault(oldLogger) })
 }

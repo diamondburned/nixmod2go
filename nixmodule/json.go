@@ -1,18 +1,15 @@
 package nixmodule
 
 import (
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"fmt"
 	"log/slog"
 	"reflect"
-
-	"github.com/go-json-experiment/json"
-	"github.com/go-json-experiment/json/jsontext"
-	// "github.com/puzpuzpuz/xsync/v3"
 )
 
 // JSONOptions is the list of options that allow for parsing Nix options.
 var JSONOptions = json.JoinOptions(
-	json.RejectUnknownMembers(false),
 	json.Deterministic(true),
 	json.WithUnmarshalers(json.JoinUnmarshalers(
 		json.UnmarshalFromFunc(unmarshalOption),

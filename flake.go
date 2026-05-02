@@ -2,10 +2,10 @@ package main
 
 import (
 	"context"
+	"encoding/json/v2"
 	"fmt"
 	"os/exec"
 
-	"github.com/go-json-experiment/json"
 	"github.com/urfave/cli/v3"
 	"libdb.so/nixmod2go/nixmodule"
 )
