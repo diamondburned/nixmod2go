@@ -31,7 +31,7 @@
         };
 
         packages.default = pkgs.buildGoModule {
-          vendorHash = "sha256-+G9ZJ/9UdooU0Z3Mkfb1NFFlmGUFYwETlA6Q8zcyJf4=";
+          vendorHash = "sha256-HJTue4QojOKriBNHTCSrCCMo1WsI3iTY2fYQr/4b9Go=";
 
           pname = "nixmod2go";
           version = self.rev or "unknown";
