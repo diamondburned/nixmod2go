@@ -134,7 +134,7 @@ var cmd = &cli.Command{
 	},
 }
 
-func appBefore(ctx context.Context, cmd *cli.Command) error {
+func appBefore(ctx context.Context, cmd *cli.Command) (context.Context, error) {
 	logLevel := slog.LevelInfo
 	if cmd.Bool("verbose") {
 		logLevel = slog.LevelDebug
@@ -149,12 +149,12 @@ func appBefore(ctx context.Context, cmd *cli.Command) error {
 	if cmd.String("config-file") != "" {
 		b, err := os.ReadFile(cmd.String("config-file"))
 		if err != nil {
-			return fmt.Errorf("unable to read config file: %w", err)
+			return nil, fmt.Errorf("unable to read config file: %w", err)
 		}
 
 		cfg := map[string]any{}
 		if err := json.Unmarshal(b, &cfg); err != nil {
-			return fmt.Errorf("unable to parse config file: %w", err)
+			return nil, fmt.Errorf("unable to parse config file: %w", err)
 		}
 
 		for k, v := range cfg {
@@ -168,7 +168,7 @@ func appBefore(ctx context.Context, cmd *cli.Command) error {
 				"value", v)
 
 			if err := setValue(cmd, k, v); err != nil {
-				return fmt.Errorf("error setting flag %q from config: %w", k, err)
+				return nil, fmt.Errorf("error setting flag %q from config: %w", k, err)
 			}
 		}
 	}
@@ -186,7 +186,7 @@ func appBefore(ctx context.Context, cmd *cli.Command) error {
 	strcases.AddPascalSpecials(initials)
 	strcases.SetPascalWords(initialsReplace)
 
-	return nil
+	return ctx, nil
 }
 
 func appAction(ctx context.Context, cmd *cli.Command) error {

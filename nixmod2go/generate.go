@@ -238,7 +238,7 @@ func (g *generatingFile) generateEnumType(name optionName, path modulePath, opti
 	fmt.Fprintln(&s)
 
 	fmt.Fprintln(&s, "const (")
-	for _, value := range option.Enum {
+	for _, value := range option.Enum.Values {
 		valueName := parseName(value)
 		fmt.Fprintf(&s, "%s %s = %q\n", name.Go+valueName.Go, name.Go, value)
 	}

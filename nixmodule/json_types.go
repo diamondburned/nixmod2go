@@ -276,7 +276,9 @@ type AnythingOption struct {
 type EnumOption struct {
 	OptionDoc
 	// Enum is the list of possible values.
-	Enum []string `json:"enum,string"`
+	Enum struct {
+		Values []string `json:"values"`
+	} `json:"enum"`
 }
 
 // SeparatedString is a Nix separated string option.
@@ -285,7 +287,9 @@ type EnumOption struct {
 type SeparatedString struct {
 	OptionDoc
 	// Separator is the string that separates elements in the list.
-	Separator string `json:"separator"`
+	Separator struct {
+		Sep string `json:"sep"`
+	} `json:"separator"`
 }
 
 // UniqueOption is a Nix unique option.

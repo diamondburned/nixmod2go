@@ -146,11 +146,11 @@ type EitherJSON struct{ Value Either }
 
 // UnmarshalJSON implements the [json.Unmarshaler] interface for [Either].
 func (e *EitherJSON) UnmarshalJSON(data []byte) error {
-	v, err := unmarshalEither(data)
+	_v, err := unmarshalEither(data)
 	if err != nil {
 		return err
 	}
-	e.Value = v
+	e.Value = _v
 	return nil
 }
 
@@ -209,11 +209,11 @@ type EitherSubmoduleJSON struct{ Value EitherSubmodule }
 
 // UnmarshalJSON implements the [json.Unmarshaler] interface for [EitherSubmodule].
 func (e *EitherSubmoduleJSON) UnmarshalJSON(data []byte) error {
-	v, err := unmarshalEitherSubmodule(data)
+	_v, err := unmarshalEitherSubmodule(data)
 	if err != nil {
 		return err
 	}
-	e.Value = v
+	e.Value = _v
 	return nil
 }
 
@@ -299,11 +299,11 @@ type OneOfJSON struct{ Value OneOf }
 
 // UnmarshalJSON implements the [json.Unmarshaler] interface for [OneOf].
 func (o *OneOfJSON) UnmarshalJSON(data []byte) error {
-	v, err := unmarshalOneOf(data)
+	_v, err := unmarshalOneOf(data)
 	if err != nil {
 		return err
 	}
-	o.Value = v
+	o.Value = _v
 	return nil
 }
 

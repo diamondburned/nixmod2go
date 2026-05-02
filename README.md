@@ -42,4 +42,5 @@ Update the generated example files.
 ```sh
 go run . -f json ./example/module.nix ./example/module.gen.json
 go run . -f go --go-package example ./example/module.nix ./example/module.gen.go
+go test ./example
 ```

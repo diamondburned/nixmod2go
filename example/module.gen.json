@@ -25,14 +25,8 @@
           "default": 42,
           "description": "An example either option (int or string)",
           "either": [
-            {
-              "_option": true,
-              "_type": "int"
-            },
-            {
-              "_option": true,
-              "_type": "str"
-            }
+            {},
+            {}
           ]
         },
         "eitherSubmodule": {
@@ -41,17 +35,10 @@
           "default": "/run/secrets/submodule.json",
           "description": "A submodule or path to the submodule",
           "either": [
+            {},
             {
-              "_option": true,
-              "_type": "path"
-            },
-            {
-              "_option": true,
-              "_type": "submodule",
               "submodule": {
                 "hello": {
-                  "_option": true,
-                  "_type": "str",
                   "default": "world"
                 }
               }
@@ -70,11 +57,13 @@
           "_type": "enum",
           "default": "a",
           "description": "An example enum option",
-          "enum": [
-            "a",
-            "b",
-            "c"
-          ]
+          "enum": {
+            "values": [
+              "a",
+              "b",
+              "c"
+            ]
+          }
         },
         "internal": {
           "_option": true,
@@ -88,28 +77,23 @@
           "_type": "separatedString",
           "example": "Hello, world!\nHello, 世界!\n",
           "description": "An example lines option (treated as string)",
-          "separator": "\n"
+          "separator": {
+            "sep": "\n"
+          }
         },
         "nullable": {
           "_option": true,
           "_type": "nullOr",
           "description": "An example nullable string option",
-          "nullOr": {
-            "_option": true,
-            "_type": "str"
-          }
+          "nullOr": {}
         },
         "nullableSubmodule": {
           "_option": true,
           "_type": "nullOr",
           "description": "An example nullable submodule option",
           "nullOr": {
-            "_option": true,
-            "_type": "submodule",
             "submodule": {
               "enable": {
-                "_option": true,
-                "_type": "bool",
                 "example": true,
                 "default": false,
                 "description": "Whether to enable nullable-submodule."
@@ -129,63 +113,22 @@
           "_type": "submodule",
           "description": "An example for various ints.* options",
           "submodule": {
-            "between": {
-              "_option": true,
-              "_type": "intBetween"
-            },
-            "float": {
-              "_option": true,
-              "_type": "float"
-            },
-            "int": {
-              "_option": true,
-              "_type": "int"
-            },
+            "s16": {},
+            "s8": {},
+            "u32": {},
+            "u8": {},
+            "positive": {},
+            "s32": {},
+            "u16": {},
+            "unsigned": {},
+            "between": {},
+            "float": {},
+            "int": {},
             "number": {
-              "_option": true,
-              "_type": "either",
               "either": [
-                {
-                  "_option": true,
-                  "_type": "int"
-                },
-                {
-                  "_option": true,
-                  "_type": "float"
-                }
+                {},
+                {}
               ]
-            },
-            "positive": {
-              "_option": true,
-              "_type": "positiveInt"
-            },
-            "s16": {
-              "_option": true,
-              "_type": "signedInt16"
-            },
-            "s32": {
-              "_option": true,
-              "_type": "signedInt32"
-            },
-            "s8": {
-              "_option": true,
-              "_type": "signedInt8"
-            },
-            "u16": {
-              "_option": true,
-              "_type": "unsignedInt16"
-            },
-            "u32": {
-              "_option": true,
-              "_type": "unsignedInt32"
-            },
-            "u8": {
-              "_option": true,
-              "_type": "unsignedInt8"
-            },
-            "unsigned": {
-              "_option": true,
-              "_type": "unsignedInt"
             }
           }
         },
@@ -195,28 +138,16 @@
           "default": false,
           "description": "An example oneOf option (int or string or bool)",
           "either": [
-            {
-              "_option": true,
-              "_type": "int"
-            },
-            {
-              "_option": true,
-              "_type": "str"
-            },
-            {
-              "_option": true,
-              "_type": "bool"
-            },
-            {
-              "_option": true,
-              "_type": "attrs"
-            }
+            {},
+            {},
+            {},
+            {}
           ]
         },
         "package": {
           "_option": true,
           "_type": "package",
-          "default": "/nix/store/26xbg1ndr7hbcncrlf9nhx5is2b25d13-hello-2.12.1",
+          "default": "/nix/store/3pcn0admdqrrd0k405y9hyad4579wgb3-hello-2.12.3",
           "description": "An example package option"
         },
         "path": {
@@ -243,10 +174,7 @@
             "hello": "world"
           },
           "description": "A map[string]string option",
-          "attrsOf": {
-            "_option": true,
-            "_type": "str"
-          }
+          "attrsOf": {}
         },
         "stringList": {
           "_option": true,
@@ -256,10 +184,7 @@
             "World"
           ],
           "description": "A list of strings",
-          "listOf": {
-            "_option": true,
-            "_type": "str"
-          }
+          "listOf": {}
         },
         "submodule": {
           "_option": true,
@@ -267,17 +192,10 @@
           "description": "An example submodule option",
           "submodule": {
             "innerNullable": {
-              "_option": true,
-              "_type": "nullOr",
               "description": "An example nullable string option",
-              "nullOr": {
-                "_option": true,
-                "_type": "str"
-              }
+              "nullOr": {}
             },
             "innerString": {
-              "_option": true,
-              "_type": "str",
               "default": "Hello, World!",
               "description": "An example string option"
             }
@@ -296,12 +214,8 @@
           ],
           "description": "An example list of submodules",
           "listOf": {
-            "_option": true,
-            "_type": "submodule",
             "submodule": {
               "enable": {
-                "_option": true,
-                "_type": "bool",
                 "example": true,
                 "default": false,
                 "description": "Whether to enable submodule-list."
@@ -315,8 +229,6 @@
           "description": "An example submodule option that references its own name",
           "submodule": {
             "currentName": {
-              "_option": true,
-              "_type": "str",
               "default": "‹name›",
               "description": "The name of the submodule"
             }
@@ -326,10 +238,7 @@
           "_option": true,
           "_type": "unique",
           "description": "An example unique string option",
-          "unique": {
-            "_option": true,
-            "_type": "str"
-          }
+          "unique": {}
         }
       }
     }
