@@ -211,6 +211,12 @@ func appAction(ctx context.Context, cmd *cli.Command) error {
 	var input nixmodule.ModuleInput
 	if cmd.Bool("expr") {
 		input = nixmodule.ModuleExpr(cmd.Args().Get(0))
+	} else if cmd.Args().Get(0) == "-" {
+		b, err := io.ReadAll(os.Stdin)
+		if err != nil {
+			return fmt.Errorf("read from stdin: %w", err)
+		}
+		input = nixmodule.ModuleExpr(string(b))
 	} else {
 		arg := cmd.Args().Get(0)
 		if flakePath, ok := strings.CutPrefix(arg, ".#"); ok {
