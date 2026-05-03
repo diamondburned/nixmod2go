@@ -87,7 +87,7 @@ func (FloatOption) Type() string         { return "float" }
 func (AttrsOption) Type() string         { return "attrs" }
 func (PackageOption) Type() string       { return "package" }
 func (AnythingOption) Type() string      { return "anything" }
-func (UnspecifiedOption) Type() string   { return "unspecified" }
+func (UnspecifiedOption) Type() string   { return "" }
 func (EnumOption) Type() string          { return "enum" }
 func (SeparatedString) Type() string     { return "separatedString" }
 func (UniqueOption) Type() string        { return "unique" }
@@ -356,5 +356,3 @@ type UnspecifiedOption struct {
 	// It is used when the type is unknown or unsupported.
 	JSON jsontext.Value `json:",unknown"`
 }
-
-func (o UnspecifiedOption) isUnspecifiedOption() {}

@@ -11,43 +11,42 @@ import (
 // JSONOptions is the list of options that allow for parsing Nix options.
 var JSONOptions = json.JoinOptions(
 	json.Deterministic(true),
-	json.WithUnmarshalers(json.JoinUnmarshalers(
-		json.UnmarshalFromFunc(unmarshalOption),
-		json.UnmarshalFromFunc(unmarshalModule),
-	)),
-	json.WithMarshalers(json.JoinMarshalers(
-		json.MarshalToFunc(marshalModule),
-		json.MarshalToFunc(marshalOption),
-	)),
+	json.WithMarshalers(json.MarshalToFunc(marshalOption)),
+	json.WithUnmarshalers(json.UnmarshalFromFunc(unmarshalOption)),
 )
 
-func marshalModule(enc *jsontext.Encoder, m Module) error {
-	return json.MarshalEncode(enc, (map[string]Option)(m), enc.Options())
-}
-
 func marshalOption(enc *jsontext.Encoder, o Option) error {
-	b, err := json.Marshal(o)
+	slog.Debug(
+		"nixmodule: marshaling",
+		"type", "option",
+		"ptr", enc.StackPointer(),
+		"value", o,
+		"value_type", fmt.Sprintf("%T", o))
+
+	b, err := json.Marshal(o,
+		enc.Options(),
+		json.WithMarshalers(json.MarshalToFunc(func(enc *jsontext.Encoder, o Option) error {
+			// Prevent infinite recursion when marshaling an Option into its raw
+			// JSON object. Nested objects are allowed to call marshalOption
+			// still.
+			if enc.StackDepth() == 0 {
+				return json.SkipFunc
+			}
+			return marshalOption(enc, o)
+		})))
 	if err != nil {
 		return err
 	}
 
-	// If Option is an UnspecifiedOption, then the JSON library will already
-	// include the internal fields for us. Pass it through directly.
-	if _, ok := o.(interface{ isUnspecifiedOption() }); ok {
-		return enc.WriteValue(b)
-	}
-
-	final := struct {
-		Option bool           `json:"_option"`
-		Type   string         `json:"_type"`
-		Value  jsontext.Value `json:",inline"`
+	return json.MarshalEncode(enc, struct {
+		Option bool           `json:"_option,omitzero"`
+		Type   string         `json:"_type,omitzero"`
+		Value  jsontext.Value `json:",unknown"`
 	}{
-		Option: true,
+		Option: o.Type() != "",
 		Type:   o.Type(),
 		Value:  b,
-	}
-
-	return json.MarshalEncode(enc, final, enc.Options())
+	})
 }
 
 func unmarshalOption(dec *jsontext.Decoder, o *Option) error {
@@ -98,51 +97,6 @@ func unmarshalOption(dec *jsontext.Decoder, o *Option) error {
 		return fmt.Errorf("unmarshal option: %w", err)
 	}
 	*o = rv.Elem().Interface().(Option)
-
-	return nil
-}
-
-func unmarshalModule(dec *jsontext.Decoder, m *Module) error {
-	if k := dec.PeekKind(); k != '{' {
-		return fmt.Errorf("expected object start, but encountered %v", k)
-	}
-
-	if _, err := dec.ReadToken(); err != nil {
-		return err
-	}
-
-	if *m == nil {
-		*m = make(Module)
-	}
-
-	for dec.PeekKind() != '}' {
-		var k string
-		if err := json.UnmarshalDecode(dec, &k, dec.Options()); err != nil {
-			return fmt.Errorf("error unmarshaling module name: %w", err)
-		}
-
-		vvalue, err := dec.ReadValue()
-		if err != nil {
-			return fmt.Errorf("error reading module attr %s: %w", k, err)
-		}
-
-		slog.Debug(
-			"nixmodule: unmarshaling",
-			"type", "module",
-			"ptr", dec.StackPointer(),
-			"value", vvalue)
-
-		var v Option
-		if err := json.Unmarshal(vvalue, &v, dec.Options()); err != nil {
-			return fmt.Errorf("error unmarshaling module attr %s: %w", k, err)
-		}
-
-		(*m)[k] = v
-	}
-
-	if _, err := dec.ReadToken(); err != nil {
-		return err
-	}
 
 	return nil
 }
